@@ -34,42 +34,52 @@ def _headers() -> dict:
     }
 
 
-def ch_query(sql: str, params: dict | None = None) -> pd.DataFrame:
+def ch_query(sql: str, params: dict | None = None, raise_on_error: bool = False) -> pd.DataFrame:
     """
     Run a native SQL query against ClickHouse via Metabase /api/dataset.
 
-    `params` is a dict of {name: value} substituted as Metabase template tags
-    using {{name}} syntax.  The function rewrites ClickHouse-style
-    {name:Type} placeholders to {{name}} and passes values as template-tag
-    parameters automatically.
+    Returns an empty DataFrame on any network/API error (graceful degradation)
+    unless raise_on_error=True.
     """
-    sql_mb, tag_params = _rewrite_params(sql, params or {})
+    try:
+        sql_mb, tag_params = _rewrite_params(sql, params or {})
 
-    payload: dict = {
-        "database": METABASE_CH_DB_ID,
-        "type": "native",
-        "native": {
-            "query": sql_mb,
-            "template-tags": _build_template_tags(tag_params),
-        },
-        "parameters": _build_parameters(tag_params),
-    }
+        payload: dict = {
+            "database": METABASE_CH_DB_ID,
+            "type": "native",
+            "native": {
+                "query": sql_mb,
+                "template-tags": _build_template_tags(tag_params),
+            },
+            "parameters": _build_parameters(tag_params),
+        }
 
-    resp = httpx.post(
-        f"{_base_url()}/api/dataset",
-        headers=_headers(),
-        json=payload,
-        timeout=60,
-    )
-    resp.raise_for_status()
-    data = resp.json()
+        resp = httpx.post(
+            f"{_base_url()}/api/dataset",
+            headers=_headers(),
+            json=payload,
+            timeout=60,
+        )
+        resp.raise_for_status()
+        data = resp.json()
 
-    if "error" in data:
-        raise RuntimeError(f"Metabase query error: {data['error']}")
+        if "error" in data:
+            if raise_on_error:
+                raise RuntimeError(f"Metabase query error: {data['error']}")
+            import logging
+            logging.warning("Metabase query error: %s", data["error"])
+            return pd.DataFrame()
 
-    rows = data["data"]["rows"]
-    cols = [c["name"] for c in data["data"]["cols"]]
-    return pd.DataFrame(rows, columns=cols)
+        rows = data["data"]["rows"]
+        cols = [c["name"] for c in data["data"]["cols"]]
+        return pd.DataFrame(rows, columns=cols)
+
+    except Exception as exc:
+        if raise_on_error:
+            raise
+        import logging
+        logging.warning("ch_query failed (returning empty): %s", exc)
+        return pd.DataFrame()
 
 
 # ---------------------------------------------------------------------------
