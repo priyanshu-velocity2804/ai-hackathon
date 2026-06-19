@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pre-Ship Intelligence — Orders</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#f0f4ff', 500: '#4f6ef7', 600: '#3b5bdb', 700: '#2f4ac6' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .fade-in { animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .spinner { border: 2px solid #e5e7eb; border-top-color: #4f6ef7; border-radius: 50%; width: 18px; height: 18px; animation: spin 0.7s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- Header -->
+<header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
+      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="text-base font-semibold text-gray-900">Pre-Ship Intelligence</h1>
+      <p class="text-xs text-gray-500">Weight &amp; Package Engine</p>
+    </div>
+  </div>
+  <button onclick="openModal()"
+    class="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    Add Order
+  </button>
+</header>
+
+<!-- Main -->
+<main class="max-w-6xl mx-auto px-6 py-8">
+
+  <!-- Stats bar -->
+  <div id="stats-bar" class="grid grid-cols-3 gap-4 mb-8 hidden">
+    <div class="bg-white rounded-xl border border-gray-200 px-5 py-4">
+      <p class="text-xs text-gray-500 mb-1">Total Orders</p>
+      <p id="stat-total" class="text-2xl font-bold text-gray-900">0</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 px-5 py-4">
+      <p class="text-xs text-gray-500 mb-1">Issues Found</p>
+      <p id="stat-issues" class="text-2xl font-bold text-red-500">0</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 px-5 py-4">
+      <p class="text-xs text-gray-500 mb-1">Orders OK</p>
+      <p id="stat-ok" class="text-2xl font-bold text-green-600">0</p>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div id="empty-state" class="flex flex-col items-center justify-center py-24 text-center">
+    <div class="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mb-4">
+      <svg class="w-8 h-8 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+      </svg>
+    </div>
+    <h2 class="text-lg font-semibold text-gray-800 mb-1">No orders yet</h2>
+    <p class="text-sm text-gray-500 mb-6">Add your first order to run weight &amp; package intelligence checks.</p>
+    <button onclick="openModal()"
+      class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
+      Add your first order
+    </button>
+  </div>
+
+  <!-- Orders table -->
+  <div id="orders-section" class="hidden">
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">SKU / Product</th>
+            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Qty</th>
+            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Applied Wt.</th>
+            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Predicted Wt.</th>
+            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Applied Slab</th>
+            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Predicted Slab</th>
+            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
+            <th class="px-5 py-3"></th>
+          </tr>
+        </thead>
+        <tbody id="orders-tbody" class="divide-y divide-gray-100"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- ===================== ADD ORDER MODAL ===================== -->
+<div id="modal-backdrop" class="fixed inset-0 bg-black/40 z-40 hidden" onclick="closeModal()"></div>
+<div id="modal" class="fixed right-0 top-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
+
+  <div class="flex items-center justify-between px-6 py-5 border-b border-gray-200">
+    <h2 class="text-base font-semibold text-gray-900">Add New Order</h2>
+    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <form id="order-form" onsubmit="submitOrder(event)" class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+    <!-- Client ID -->
+    <div>
+      <label class="block text-xs font-medium text-gray-700 mb-1.5">Client ID</label>
+      <input id="f-client_id" type="text" required
+        value="764c0f86-cb84-432f-a77f-b8f6cfaaed4f"
+        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent" />
+      <p class="text-xs text-gray-400 mt-1">Pre-filled with SEJALIMPEX</p>
+    </div>
+
+    <!-- SKU + SKU Name -->
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1.5">SKU</label>
+        <input id="f-sku" type="text" required placeholder="e.g. SKU-001"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1.5">Quantity</label>
+        <input id="f-quantity" type="number" min="1" value="1" required
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-gray-700 mb-1.5">Product Name / SKU Name</label>
+      <input id="f-sku_name" type="text" required placeholder="e.g. Claw Clip Pack of 6, Scrunchie Pack of 3"
+        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+      <p class="text-xs text-gray-400 mt-1">Comma-separate multiple items in a basket</p>
+    </div>
+
+    <!-- Divider -->
+    <div class="border-t border-gray-100 pt-1">
+      <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Declared by seller (optional)</p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1.5">Applied Weight (kg)</label>
+        <input id="f-applied_weight_kg" type="number" step="0.001" min="0" placeholder="e.g. 0.48"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1.5">Package ID (UUID)</label>
+        <input id="f-applied_package_id" type="text" placeholder="optional"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-gray-700 mb-1.5">Package Dimensions (cm)</label>
+      <div class="grid grid-cols-3 gap-2">
+        <input id="f-pkg_l" type="number" step="0.1" min="0" placeholder="Length"
+          class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        <input id="f-pkg_w" type="number" step="0.1" min="0" placeholder="Width"
+          class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        <input id="f-pkg_h" type="number" step="0.1" min="0" placeholder="Height"
+          class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="form-error" class="hidden bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700"></div>
+
+  </form>
+
+  <div class="px-6 py-4 border-t border-gray-200 flex gap-3">
+    <button type="button" onclick="closeModal()"
+      class="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+      Cancel
+    </button>
+    <button id="submit-btn" type="submit" form="order-form"
+      class="flex-1 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+      Run Analysis
+    </button>
+  </div>
+</div>
+
+<!-- ===================== DETAIL DRAWER ===================== -->
+<div id="detail-backdrop" class="fixed inset-0 bg-black/40 z-40 hidden" onclick="closeDetail()"></div>
+<div id="detail-drawer" class="fixed right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col overflow-hidden">
+  <div class="flex items-center justify-between px-6 py-5 border-b border-gray-200">
+    <h2 class="text-base font-semibold text-gray-900" id="detail-title">Order Analysis</h2>
+    <button onclick="closeDetail()" class="text-gray-400 hover:text-gray-600">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  <div id="detail-body" class="flex-1 overflow-y-auto px-6 py-5 space-y-5"></div>
+</div>
+
+<script>
+// ───────────────────────────────────────────────
+// State
+// ───────────────────────────────────────────────
+let orders = JSON.parse(localStorage.getItem('psi_orders') || '[]');
+const API = '/v1';
+
+// ───────────────────────────────────────────────
+// Modal
+// ───────────────────────────────────────────────
+function openModal() {
+  document.getElementById('modal-backdrop').classList.remove('hidden');
+  document.getElementById('modal').classList.remove('translate-x-full');
+  document.getElementById('form-error').classList.add('hidden');
+}
+function closeModal() {
+  document.getElementById('modal-backdrop').classList.add('hidden');
+  document.getElementById('modal').classList.add('translate-x-full');
+}
+
+// ───────────────────────────────────────────────
+// Detail drawer
+// ───────────────────────────────────────────────
+function openDetail(id) {
+  const order = orders.find(o => o.id === id);
+  if (!order) return;
+  document.getElementById('detail-title').textContent = order.sku_name.slice(0, 50);
+  document.getElementById('detail-body').innerHTML = renderDetail(order);
+  document.getElementById('detail-backdrop').classList.remove('hidden');
+  document.getElementById('detail-drawer').classList.remove('translate-x-full');
+}
+function closeDetail() {
+  document.getElementById('detail-backdrop').classList.add('hidden');
+  document.getElementById('detail-drawer').classList.add('translate-x-full');
+}
+
+// ───────────────────────────────────────────────
+// Submit
+// ───────────────────────────────────────────────
+async function submitOrder(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  const errBox = document.getElementById('form-error');
+  errBox.classList.add('hidden');
+  btn.innerHTML = '<span class="spinner"></span> Analysing…';
+  btn.disabled = true;
+
+  const payload = {
+    client_id: v('f-client_id'),
+    sku: v('f-sku'),
+    sku_name: v('f-sku_name'),
+    quantity: parseInt(v('f-quantity')) || 1,
+    applied_weight_kg: parseFloat(v('f-applied_weight_kg')) || null,
+    applied_package_id: v('f-applied_package_id') || null,
+    package_length_cm: parseFloat(v('f-pkg_l')) || null,
+    package_width_cm: parseFloat(v('f-pkg_w')) || null,
+    package_height_cm: parseFloat(v('f-pkg_h')) || null,
+  };
+
+  try {
+    const res = await fetch(`${API}/analyze-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Server error ${res.status}`);
+    }
+    const analysis = await res.json();
+    const order = {
+      id: Date.now().toString(),
+      ...payload,
+      analysis,
+      created_at: new Date().toISOString(),
+    };
+    orders.unshift(order);
+    localStorage.setItem('psi_orders', JSON.stringify(orders));
+    render();
+    closeModal();
+    document.getElementById('order-form').reset();
+    document.getElementById('f-client_id').value = '764c0f86-cb84-432f-a77f-b8f6cfaaed4f';
+    // Auto-open detail for new order
+    setTimeout(() => openDetail(order.id), 300);
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.classList.remove('hidden');
+  } finally {
+    btn.innerHTML = 'Run Analysis';
+    btn.disabled = false;
+  }
+}
+
+function v(id) { return document.getElementById(id)?.value?.trim() || ''; }
+
+// ───────────────────────────────────────────────
+// Render table
+// ───────────────────────────────────────────────
+function render() {
+  const empty = document.getElementById('empty-state');
+  const section = document.getElementById('orders-section');
+  const statsBar = document.getElementById('stats-bar');
+  const tbody = document.getElementById('orders-tbody');
+
+  if (orders.length === 0) {
+    empty.classList.remove('hidden');
+    section.classList.add('hidden');
+    statsBar.classList.add('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  section.classList.remove('hidden');
+  statsBar.classList.remove('hidden');
+
+  // Stats
+  const issues = orders.filter(o => o.analysis.overall_status !== 'ok').length;
+  document.getElementById('stat-total').textContent = orders.length;
+  document.getElementById('stat-issues').textContent = issues;
+  document.getElementById('stat-ok').textContent = orders.length - issues;
+
+  tbody.innerHTML = orders.map(order => {
+    const a = order.analysis;
+    const badge = statusBadge(a.overall_status);
+    const appliedSlab = a.applied_slab != null ? `${a.applied_slab} kg` : '—';
+    const appliedWt = order.applied_weight_kg != null ? `${order.applied_weight_kg} kg` : '—';
+    return `
+      <tr class="hover:bg-gray-50 cursor-pointer fade-in" onclick="openDetail('${order.id}')">
+        <td class="px-5 py-4">
+          <p class="font-medium text-gray-900 text-sm truncate max-w-xs">${esc(order.sku_name)}</p>
+          <p class="text-xs text-gray-400 mt-0.5">${esc(order.sku)}</p>
+        </td>
+        <td class="px-5 py-4 text-sm text-gray-700">${order.quantity}</td>
+        <td class="px-5 py-4 text-sm text-gray-700">${appliedWt}</td>
+        <td class="px-5 py-4 text-sm font-medium text-gray-900">${a.predicted_dead_weight_kg} kg</td>
+        <td class="px-5 py-4 text-sm text-gray-700">${appliedSlab}</td>
+        <td class="px-5 py-4 text-sm font-medium text-gray-900">${a.predicted_slab} kg</td>
+        <td class="px-5 py-4">${badge}</td>
+        <td class="px-5 py-4 text-right">
+          <svg class="w-4 h-4 text-gray-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// ───────────────────────────────────────────────
+// Detail panel content
+// ───────────────────────────────────────────────
+function renderDetail(order) {
+  const a = order.analysis;
+  const sections = [];
+
+  // Summary banner
+  const bannerColor = { ok: 'bg-green-50 border-green-200 text-green-800', warning: 'bg-amber-50 border-amber-200 text-amber-800', critical: 'bg-red-50 border-red-200 text-red-800' }[a.overall_status];
+  sections.push(`
+    <div class="border rounded-xl px-4 py-3 ${bannerColor} text-sm font-medium">
+      ${statusIcon(a.overall_status)} ${esc(a.summary)}
+    </div>`);
+
+  // Weight card
+  sections.push(`
+    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+        <span class="text-sm font-semibold text-gray-800">Weight Analysis</span>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">${confidenceLabel(a.weight_confidence)} confidence · ${esc(a.weight_basis)}</span>
+      </div>
+      <div class="px-4 py-4 grid grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs text-gray-500 mb-0.5">Predicted Dead Weight</p>
+          <p class="text-xl font-bold text-gray-900">${a.predicted_dead_weight_kg} kg</p>
+          <p class="text-xs text-gray-400 mt-0.5">→ slab <span class="font-semibold text-gray-700">${a.predicted_slab} kg</span></p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 mb-0.5">Applied Weight</p>
+          <p class="text-xl font-bold ${a.applied_slab !== a.predicted_slab ? 'text-red-500' : 'text-green-600'}">${order.applied_weight_kg != null ? order.applied_weight_kg + ' kg' : '—'}</p>
+          <p class="text-xs text-gray-400 mt-0.5">→ slab <span class="font-semibold">${a.applied_slab != null ? a.applied_slab + ' kg' : '—'}</span></p>
+        </div>
+      </div>
+      ${a.weight_issues.map(issue => issueCard(issue)).join('')}
+    </div>`);
+
+  // Package card
+  if (a.package_decision) {
+    const decisionColor = { keep: 'text-green-700 bg-green-50', switch: 'text-amber-700 bg-amber-50', create: 'text-red-700 bg-red-50' }[a.package_decision] || '';
+    let pkgDetails = '';
+    if (a.package_decision === 'switch' && a.recommended_package_id) {
+      pkgDetails = `<p class="text-xs text-gray-600 mt-2">Switch to package <span class="font-mono bg-gray-100 px-1 rounded text-xs">${esc(a.recommended_package_id)}</span></p>`;
+    } else if (a.package_decision === 'create' && a.suggested_new_dims_cm) {
+      const d = a.suggested_new_dims_cm;
+      pkgDetails = `<p class="text-xs text-gray-600 mt-2">Suggested dims: <span class="font-semibold">${d.length_cm} × ${d.width_cm} × ${d.height_cm} cm</span>${d.estimated_slab ? ` → slab ${d.estimated_slab} kg` : ''}</p>`;
+    }
+    sections.push(`
+      <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+          <span class="text-sm font-semibold text-gray-800">Package Recommendation</span>
+          <span class="text-xs px-2 py-0.5 rounded-full font-semibold uppercase ${decisionColor}">${a.package_decision}</span>
+        </div>
+        <div class="px-4 py-4">
+          <p class="text-sm text-gray-700">${esc(a.package_reason || '')}</p>
+          ${pkgDetails}
+        </div>
+      </div>`);
+  }
+
+  // Order meta
+  sections.push(`
+    <div class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-xs text-gray-500 space-y-1.5">
+      <div class="flex justify-between"><span>SKU</span><span class="font-mono text-gray-700">${esc(order.sku)}</span></div>
+      <div class="flex justify-between"><span>Quantity</span><span class="text-gray-700">${order.quantity}</span></div>
+      <div class="flex justify-between"><span>Client ID</span><span class="font-mono text-gray-700">${esc(order.client_id)}</span></div>
+      ${order.package_length_cm ? `<div class="flex justify-between"><span>Package dims</span><span class="text-gray-700">${order.package_length_cm}×${order.package_width_cm}×${order.package_height_cm} cm</span></div>` : ''}
+      <div class="flex justify-between"><span>Analysed at</span><span class="text-gray-700">${new Date(order.created_at).toLocaleString()}</span></div>
+    </div>`);
+
+  return sections.join('');
+}
+
+// ───────────────────────────────────────────────
+// Helpers
+// ───────────────────────────────────────────────
+function issueCard(issue) {
+  const colors = {
+    ok:       'border-green-200 bg-green-50',
+    warning:  'border-amber-200 bg-amber-50',
+    critical: 'border-red-200 bg-red-50',
+  };
+  const titleColors = { ok: 'text-green-800', warning: 'text-amber-800', critical: 'text-red-700' };
+  return `
+    <div class="mx-4 mb-4 border rounded-lg px-3 py-3 ${colors[issue.severity] || 'border-gray-200'}">
+      <p class="text-xs font-semibold ${titleColors[issue.severity] || ''} mb-0.5">${statusIcon(issue.severity)} ${esc(issue.title)}</p>
+      <p class="text-xs text-gray-700 mb-1">${esc(issue.detail)}</p>
+      <p class="text-xs text-gray-500"><span class="font-medium">Suggestion:</span> ${esc(issue.suggestion)}</p>
+    </div>`;
+}
+
+function statusBadge(status) {
+  const cfg = {
+    ok:       'bg-green-100 text-green-700',
+    warning:  'bg-amber-100 text-amber-700',
+    critical: 'bg-red-100 text-red-700',
+  };
+  return `<span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${cfg[status] || 'bg-gray-100 text-gray-600'}">${statusIcon(status)} ${status}</span>`;
+}
+
+function statusIcon(status) {
+  if (status === 'ok') return '✓';
+  if (status === 'critical') return '✕';
+  return '⚠';
+}
+
+function confidenceLabel(c) {
+  if (c >= 0.8) return 'High';
+  if (c >= 0.5) return 'Medium';
+  return 'Low';
+}
+
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ───────────────────────────────────────────────
+// Init
+// ───────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
