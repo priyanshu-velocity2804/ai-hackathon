@@ -3,258 +3,393 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pre-Ship Intelligence — Orders</title>
+  <title>Velocity Shipping — Orders</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            brand: { 50: '#f0f4ff', 500: '#4f6ef7', 600: '#3b5bdb', 700: '#2f4ac6' }
+            navy: { 900: '#141929', 800: '#1a2240', 700: '#1e2a4a', 600: '#243058' },
+            brand: { 500: '#3b5bdb', 600: '#3451c7', 700: '#2f4ac6' }
           }
         }
       }
     }
   </script>
   <style>
-    body { font-family: 'Inter', system-ui, sans-serif; }
-    .fade-in { animation: fadeIn 0.25s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-    .spinner { border: 2px solid #e5e7eb; border-top-color: #4f6ef7; border-radius: 50%; width: 18px; height: 18px; animation: spin 0.7s linear infinite; display: inline-block; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; margin: 0; background: #f0f2f8; }
+    .fade-in { animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+    .spinner { border: 2px solid #e5e7eb; border-top-color: #3b5bdb; border-radius: 50%; width: 16px; height: 16px; animation: spin 0.7s linear infinite; display: inline-block; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; color: #94a3c4; transition: all 0.15s; white-space: nowrap; }
+    .nav-item:hover { background: rgba(255,255,255,0.07); color: #c8d3f0; }
+    .nav-item.active { background: #3b5bdb; color: white; }
+    .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .tab { display: flex; align-items: center; gap: 6px; padding: 10px 14px; font-size: 13px; font-weight: 500; color: #6b7280; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; }
+    .tab:hover { color: #374151; }
+    .tab.active { color: #3b5bdb; border-bottom-color: #3b5bdb; }
+    .tab .count { background: #e5e7eb; color: #6b7280; border-radius: 10px; padding: 1px 7px; font-size: 11px; }
+    .tab.active .count { background: #dbeafe; color: #3b5bdb; }
+    .slide-panel { transition: transform 0.3s cubic-bezier(.4,0,.2,1); }
+    .weight-ok    { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+    .weight-warn  { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+    .weight-crit  { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="flex flex-col h-screen overflow-hidden">
 
-<!-- Header -->
-<header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-  <div class="flex items-center gap-3">
-    <div class="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
-      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-      </svg>
+<!-- Red ghost-view banner -->
+<div class="bg-red-600 text-white text-xs text-center py-2 px-4 shrink-0 z-50">
+  You are accessing the customer dashboard via Ghost View on behalf of the customer. Please exercise utmost caution. All actions performed here are audited and linked with your email priyanshu@velocity.in
+</div>
+
+<div class="flex flex-1 overflow-hidden">
+
+  <!-- ══════════════ SIDEBAR ══════════════ -->
+  <aside class="bg-navy-900 flex flex-col shrink-0 overflow-y-auto" style="width:200px; min-width:200px;">
+
+    <!-- Logo -->
+    <div class="px-4 py-4 border-b border-white/10 flex items-center gap-2.5">
+      <div class="w-7 h-7 bg-brand-500 rounded flex items-center justify-center shrink-0">
+        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/><path d="M3 4a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 14.846 4.632 17 6.414 17H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 6H6.28l-.31-1.243A1 1 0 005 4H3z"/></svg>
+      </div>
+      <div>
+        <div class="text-white font-bold text-sm leading-tight">Velocity</div>
+        <div class="text-blue-300 text-xs leading-tight">Shipping</div>
+      </div>
+      <button class="ml-auto text-gray-500 hover:text-gray-300">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      </button>
     </div>
+
+    <!-- Product selector -->
+    <div class="px-3 py-3 border-b border-white/10">
+      <div class="text-gray-500 text-xs mb-1.5 px-1">Product</div>
+      <button class="w-full flex items-center gap-2 bg-navy-700 hover:bg-navy-600 px-3 py-2 rounded-lg text-white text-xs font-medium transition-colors">
+        <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8l1.647 9.765A2 2 0 008.624 20h6.752a2 2 0 001.977-2.235L16 8"/></svg>
+        Shipping
+        <svg class="w-3 h-3 text-gray-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 px-2 py-3 space-y-0.5">
+      <div class="nav-item"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Dashboard</div>
+      <div class="nav-item active"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Orders</div>
+      <div class="nav-item"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>Pickups</div>
+      <div class="nav-item"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>Payments</div>
+      <div class="nav-item"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H4a2 2 0 01-2-2V5a2 2 0 012-2h16a2 2 0 012 2v10a2 2 0 01-2 2h-1"/></svg>AI Agents</div>
+      <div class="nav-item"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z"/></svg>Returns</div>
+      <div class="nav-item"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>Upload History</div>
+      <div class="nav-item text-amber-400 hover:text-amber-300"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>Weight Discrepancy</div>
+      <div class="nav-item"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>Analytics</div>
+      <div class="nav-item"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>Shipping Rules</div>
+      <div class="nav-item"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>Buyer Comms</div>
+      <div class="nav-item justify-between"><div class="flex items-center gap-2.5"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Tools</div><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div>
+      <div class="nav-item pl-8 text-xs"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>Serviceability</div>
+    </nav>
+
+    <!-- Bottom -->
+    <div class="px-2 py-3 border-t border-white/10 space-y-0.5">
+      <div class="nav-item text-xs"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Support</div>
+      <div class="px-3 py-2">
+        <div class="text-gray-500 text-xs">Wallet Balance</div>
+        <div class="text-white text-sm font-semibold flex items-center gap-1">₹16,112.36 <svg class="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></div>
+      </div>
+      <div class="mx-2 bg-gradient-to-r from-yellow-500 to-amber-400 rounded-lg px-3 py-2 flex items-center gap-2">
+        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        <span class="text-white text-xs font-semibold">Gold Plan</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════════ MAIN ══════════════ -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- Top bar -->
+    <div class="bg-white border-b border-gray-200 px-6 py-3.5 flex items-center gap-4 shrink-0">
+      <h1 class="text-xl font-bold text-gray-900 mr-2">Orders</h1>
+      <!-- Search -->
+      <div class="flex-1 max-w-md relative">
+        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input placeholder="Search by AWB, Order Id, Product or Customer Details" class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white" />
+      </div>
+      <div class="flex items-center gap-2 ml-auto">
+        <button class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></button>
+        <button class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg></button>
+        <button class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg></button>
+        <div class="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center text-white text-xs font-bold">SJ</div>
+        <span class="text-sm font-medium text-gray-700">Sejal</span>
+        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="bg-white border-b border-gray-200 px-6 flex items-center gap-1 shrink-0 overflow-x-auto">
+      <div class="tab active" onclick="setTab(this,'new')">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="4"/></svg>
+        New <span class="count" id="tab-count-new">0</span>
+      </div>
+      <div class="tab" onclick="setTab(this,'ready')">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+        Ready to ship
+      </div>
+      <div class="tab" onclick="setTab(this,'transit')">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+        In-transit
+      </div>
+      <div class="tab" onclick="setTab(this,'delivered')">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Delivered
+      </div>
+      <div class="tab" onclick="setTab(this,'attention')">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        Needs attention
+      </div>
+      <div class="tab" onclick="setTab(this,'rto')">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+        RTO
+      </div>
+      <div class="tab" onclick="setTab(this,'cancelled')">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        Cancelled
+      </div>
+      <div class="tab" onclick="setTab(this,'all')">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+        All
+      </div>
+    </div>
+
+    <!-- Content area -->
+    <div class="flex-1 overflow-y-auto">
+      <div class="px-6 py-4">
+
+        <!-- Toolbar -->
+        <div class="flex items-center gap-3 mb-4">
+          <span id="order-count-label" class="text-sm font-medium text-gray-600">0 Orders</span>
+          <div class="ml-auto flex items-center gap-2">
+            <div class="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 bg-white cursor-pointer hover:bg-gray-50">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              All
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </div>
+            <button class="p-1.5 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></button>
+            <button class="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:bg-gray-50 text-sm text-gray-600">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 010 2H4a1 1 0 01-1-1zM4 9h16M7 14h10M10 19h4"/></svg>
+              Filter
+            </button>
+            <button class="p-1.5 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></button>
+            <button onclick="openAddOrder()" class="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              ADD ORDER
+            </button>
+            <button class="p-1.5 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></button>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="empty-state" class="bg-white rounded-xl border border-gray-200 py-24 flex flex-col items-center">
+          <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+            <svg class="w-8 h-8 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          </div>
+          <p class="text-gray-700 font-semibold mb-1">No orders yet</p>
+          <p class="text-sm text-gray-400 mb-5">Add an order to run pre-ship weight intelligence checks</p>
+          <button onclick="openAddOrder()" class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors flex items-center gap-2">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Add your first order
+          </button>
+        </div>
+
+        <!-- Orders table -->
+        <div id="orders-section" class="hidden bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="w-8 px-4 py-3"><input type="checkbox" class="rounded border-gray-300"/></th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Order Id</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Customer</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Product</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Package</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Payment</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Pickup</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                <th class="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody id="orders-tbody" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ ADD ORDER SLIDE PANEL ══════════════ -->
+<div id="panel-backdrop" class="fixed inset-0 bg-black/30 z-40 hidden" onclick="closeAddOrder()"></div>
+<div id="add-panel" class="slide-panel fixed right-0 top-0 h-full bg-white shadow-2xl z-50 translate-x-full flex flex-col" style="width:460px">
+  <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
     <div>
-      <h1 class="text-base font-semibold text-gray-900">Pre-Ship Intelligence</h1>
-      <p class="text-xs text-gray-500">Weight &amp; Package Engine</p>
+      <h2 class="text-base font-bold text-gray-900">Add New Order</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Engine will predict weight &amp; check your package</p>
     </div>
-  </div>
-  <button onclick="openModal()"
-    class="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-    </svg>
-    Add Order
-  </button>
-</header>
-
-<!-- Main -->
-<main class="max-w-6xl mx-auto px-6 py-8">
-
-  <!-- Stats bar -->
-  <div id="stats-bar" class="grid grid-cols-3 gap-4 mb-8 hidden">
-    <div class="bg-white rounded-xl border border-gray-200 px-5 py-4">
-      <p class="text-xs text-gray-500 mb-1">Total Orders</p>
-      <p id="stat-total" class="text-2xl font-bold text-gray-900">0</p>
-    </div>
-    <div class="bg-white rounded-xl border border-gray-200 px-5 py-4">
-      <p class="text-xs text-gray-500 mb-1">Issues Found</p>
-      <p id="stat-issues" class="text-2xl font-bold text-red-500">0</p>
-    </div>
-    <div class="bg-white rounded-xl border border-gray-200 px-5 py-4">
-      <p class="text-xs text-gray-500 mb-1">Orders OK</p>
-      <p id="stat-ok" class="text-2xl font-bold text-green-600">0</p>
-    </div>
-  </div>
-
-  <!-- Empty state -->
-  <div id="empty-state" class="flex flex-col items-center justify-center py-24 text-center">
-    <div class="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mb-4">
-      <svg class="w-8 h-8 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-      </svg>
-    </div>
-    <h2 class="text-lg font-semibold text-gray-800 mb-1">No orders yet</h2>
-    <p class="text-sm text-gray-500 mb-6">Add your first order to run weight &amp; package intelligence checks.</p>
-    <button onclick="openModal()"
-      class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
-      Add your first order
+    <button onclick="closeAddOrder()" class="text-gray-400 hover:text-gray-600 p-1">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
     </button>
   </div>
 
-  <!-- Orders table -->
-  <div id="orders-section" class="hidden">
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <table class="w-full text-sm">
-        <thead class="bg-gray-50 border-b border-gray-200">
-          <tr>
-            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">SKU / Product</th>
-            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Qty</th>
-            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Applied Wt.</th>
-            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Predicted Wt.</th>
-            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Applied Slab</th>
-            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Predicted Slab</th>
-            <th class="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
-            <th class="px-5 py-3"></th>
-          </tr>
-        </thead>
-        <tbody id="orders-tbody" class="divide-y divide-gray-100"></tbody>
-      </table>
-    </div>
-  </div>
-
-</main>
-
-<!-- ===================== ADD ORDER MODAL ===================== -->
-<div id="modal-backdrop" class="fixed inset-0 bg-black/40 z-40 hidden" onclick="closeModal()"></div>
-<div id="modal" class="fixed right-0 top-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
-
-  <div class="flex items-center justify-between px-6 py-5 border-b border-gray-200">
-    <h2 class="text-base font-semibold text-gray-900">Add New Order</h2>
-    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-      </svg>
-    </button>
-  </div>
-
-  <form id="order-form" onsubmit="submitOrder(event)" class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+  <form id="order-form" onsubmit="submitOrder(event)" class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
 
     <!-- Client ID -->
     <div>
-      <label class="block text-xs font-medium text-gray-700 mb-1.5">Client ID</label>
-      <input id="f-client_id" type="text" required
-        value="764c0f86-cb84-432f-a77f-b8f6cfaaed4f"
-        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent" />
-      <p class="text-xs text-gray-400 mt-1">Pre-filled with SEJALIMPEX</p>
+      <label class="block text-xs font-semibold text-gray-600 mb-1.5">Client ID</label>
+      <input id="f-client_id" type="text" required value="764c0f86-cb84-432f-a77f-b8f6cfaaed4f"
+        class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-gray-50"/>
     </div>
 
-    <!-- SKU + SKU Name -->
     <div class="grid grid-cols-2 gap-3">
       <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1.5">SKU</label>
+        <label class="block text-xs font-semibold text-gray-600 mb-1.5">SKU</label>
         <input id="f-sku" type="text" required placeholder="e.g. SKU-001"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"/>
       </div>
       <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1.5">Quantity</label>
+        <label class="block text-xs font-semibold text-gray-600 mb-1.5">Quantity</label>
         <input id="f-quantity" type="number" min="1" value="1" required
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"/>
       </div>
     </div>
 
     <div>
-      <label class="block text-xs font-medium text-gray-700 mb-1.5">Product Name / SKU Name</label>
+      <label class="block text-xs font-semibold text-gray-600 mb-1.5">Product Name</label>
       <input id="f-sku_name" type="text" required placeholder="e.g. Claw Clip Pack of 6, Scrunchie Pack of 3"
-        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"/>
       <p class="text-xs text-gray-400 mt-1">Comma-separate multiple items in a basket</p>
     </div>
 
-    <!-- Divider -->
-    <div class="border-t border-gray-100 pt-1">
-      <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">Declared by seller (optional)</p>
-    </div>
+    <div class="border-t border-gray-100 pt-3">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Declared by seller</p>
 
-    <div class="grid grid-cols-2 gap-3">
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1.5">Applied Weight (kg)</label>
-        <input id="f-applied_weight_kg" type="number" step="0.001" min="0" placeholder="e.g. 0.48"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1.5">Package ID (UUID)</label>
-        <input id="f-applied_package_id" type="text" placeholder="optional"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1.5">Applied Weight (kg)</label>
+          <input id="f-applied_weight_kg" type="number" step="0.001" min="0" placeholder="e.g. 0.48"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1.5">Package ID</label>
+          <input id="f-applied_package_id" type="text" placeholder="UUID (optional)"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"/>
+        </div>
       </div>
     </div>
 
     <div>
-      <label class="block text-xs font-medium text-gray-700 mb-1.5">Package Dimensions (cm)</label>
+      <label class="block text-xs font-semibold text-gray-600 mb-1.5">Package Dimensions (cm)</label>
       <div class="grid grid-cols-3 gap-2">
-        <input id="f-pkg_l" type="number" step="0.1" min="0" placeholder="Length"
-          class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
-        <input id="f-pkg_w" type="number" step="0.1" min="0" placeholder="Width"
-          class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
-        <input id="f-pkg_h" type="number" step="0.1" min="0" placeholder="Height"
-          class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500" />
+        <div class="relative">
+          <input id="f-pkg_l" type="number" step="0.1" min="0" placeholder="Length"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"/>
+        </div>
+        <div>
+          <input id="f-pkg_w" type="number" step="0.1" min="0" placeholder="Width"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"/>
+        </div>
+        <div>
+          <input id="f-pkg_h" type="number" step="0.1" min="0" placeholder="Height"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"/>
+        </div>
       </div>
     </div>
 
-    <!-- Error -->
     <div id="form-error" class="hidden bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700"></div>
 
   </form>
 
-  <div class="px-6 py-4 border-t border-gray-200 flex gap-3">
-    <button type="button" onclick="closeModal()"
-      class="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+  <div class="px-6 py-4 border-t border-gray-200 flex gap-3 shrink-0">
+    <button type="button" onclick="closeAddOrder()"
+      class="flex-1 border border-gray-300 text-gray-700 text-sm font-semibold py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
       Cancel
     </button>
     <button id="submit-btn" type="submit" form="order-form"
-      class="flex-1 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+      class="flex-1 bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
       Run Analysis
     </button>
   </div>
 </div>
 
-<!-- ===================== DETAIL DRAWER ===================== -->
-<div id="detail-backdrop" class="fixed inset-0 bg-black/40 z-40 hidden" onclick="closeDetail()"></div>
-<div id="detail-drawer" class="fixed right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col overflow-hidden">
-  <div class="flex items-center justify-between px-6 py-5 border-b border-gray-200">
-    <h2 class="text-base font-semibold text-gray-900" id="detail-title">Order Analysis</h2>
-    <button onclick="closeDetail()" class="text-gray-400 hover:text-gray-600">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-      </svg>
+<!-- ══════════════ ORDER DETAIL SLIDE PANEL ══════════════ -->
+<div id="detail-backdrop" class="fixed inset-0 bg-black/30 z-40 hidden" onclick="closeDetail()"></div>
+<div id="detail-panel" class="slide-panel fixed right-0 top-0 h-full bg-white shadow-2xl z-50 translate-x-full flex flex-col" style="width:520px">
+  <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+    <div>
+      <h2 class="text-base font-bold text-gray-900" id="detail-title">Order Analysis</h2>
+      <p class="text-xs text-gray-400 mt-0.5" id="detail-sub"></p>
+    </div>
+    <button onclick="closeDetail()" class="text-gray-400 hover:text-gray-600 p-1">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
     </button>
   </div>
-  <div id="detail-body" class="flex-1 overflow-y-auto px-6 py-5 space-y-5"></div>
+  <div id="detail-body" class="flex-1 overflow-y-auto px-6 py-5 space-y-4"></div>
 </div>
 
 <script>
-// ───────────────────────────────────────────────
-// State
-// ───────────────────────────────────────────────
-let orders = JSON.parse(localStorage.getItem('psi_orders') || '[]');
+// ─────────────────────────────────────────────────
+// State & API
+// ─────────────────────────────────────────────────
+let orders = JSON.parse(localStorage.getItem('vs_orders') || '[]');
+let orderCounter = parseInt(localStorage.getItem('vs_counter') || '9328');
 const API = '/v1';
 
-// ───────────────────────────────────────────────
-// Modal
-// ───────────────────────────────────────────────
-function openModal() {
-  document.getElementById('modal-backdrop').classList.remove('hidden');
-  document.getElementById('modal').classList.remove('translate-x-full');
+// ─────────────────────────────────────────────────
+// Panels
+// ─────────────────────────────────────────────────
+function openAddOrder() {
+  document.getElementById('panel-backdrop').classList.remove('hidden');
+  document.getElementById('add-panel').classList.remove('translate-x-full');
   document.getElementById('form-error').classList.add('hidden');
 }
-function closeModal() {
-  document.getElementById('modal-backdrop').classList.add('hidden');
-  document.getElementById('modal').classList.add('translate-x-full');
+function closeAddOrder() {
+  document.getElementById('panel-backdrop').classList.add('hidden');
+  document.getElementById('add-panel').classList.add('translate-x-full');
 }
-
-// ───────────────────────────────────────────────
-// Detail drawer
-// ───────────────────────────────────────────────
 function openDetail(id) {
   const order = orders.find(o => o.id === id);
   if (!order) return;
-  document.getElementById('detail-title').textContent = order.sku_name.slice(0, 50);
-  document.getElementById('detail-body').innerHTML = renderDetail(order);
+  document.getElementById('detail-title').textContent = 'UBKWS-' + order.displayId;
+  document.getElementById('detail-sub').textContent = order.sku_name.slice(0, 60);
+  document.getElementById('detail-body').innerHTML = buildDetail(order);
   document.getElementById('detail-backdrop').classList.remove('hidden');
-  document.getElementById('detail-drawer').classList.remove('translate-x-full');
+  document.getElementById('detail-panel').classList.remove('translate-x-full');
 }
 function closeDetail() {
   document.getElementById('detail-backdrop').classList.add('hidden');
-  document.getElementById('detail-drawer').classList.add('translate-x-full');
+  document.getElementById('detail-panel').classList.add('translate-x-full');
 }
 
-// ───────────────────────────────────────────────
+// ─────────────────────────────────────────────────
+// Tabs
+// ─────────────────────────────────────────────────
+function setTab(el, tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ─────────────────────────────────────────────────
 // Submit
-// ───────────────────────────────────────────────
+// ─────────────────────────────────────────────────
 async function submitOrder(e) {
   e.preventDefault();
   const btn = document.getElementById('submit-btn');
-  const errBox = document.getElementById('form-error');
-  errBox.classList.add('hidden');
+  const err = document.getElementById('form-error');
+  err.classList.add('hidden');
   btn.innerHTML = '<span class="spinner"></span> Analysing…';
   btn.disabled = true;
 
@@ -277,204 +412,253 @@ async function submitOrder(e) {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || `Server error ${res.status}`);
+      const e2 = await res.json().catch(() => ({}));
+      throw new Error(e2.detail || `Server error ${res.status}`);
     }
     const analysis = await res.json();
+    orderCounter++;
     const order = {
       id: Date.now().toString(),
+      displayId: orderCounter,
+      created_at: new Date().toISOString(),
       ...payload,
       analysis,
-      created_at: new Date().toISOString(),
     };
     orders.unshift(order);
-    localStorage.setItem('psi_orders', JSON.stringify(orders));
+    localStorage.setItem('vs_orders', JSON.stringify(orders));
+    localStorage.setItem('vs_counter', String(orderCounter));
     render();
-    closeModal();
+    closeAddOrder();
     document.getElementById('order-form').reset();
     document.getElementById('f-client_id').value = '764c0f86-cb84-432f-a77f-b8f6cfaaed4f';
-    // Auto-open detail for new order
-    setTimeout(() => openDetail(order.id), 300);
-  } catch (err) {
-    errBox.textContent = err.message;
-    errBox.classList.remove('hidden');
+    setTimeout(() => openDetail(order.id), 350);
+  } catch (ex) {
+    err.textContent = ex.message;
+    err.classList.remove('hidden');
   } finally {
-    btn.innerHTML = 'Run Analysis';
+    btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Run Analysis';
     btn.disabled = false;
   }
 }
+function v(id) { return (document.getElementById(id)?.value || '').trim(); }
 
-function v(id) { return document.getElementById(id)?.value?.trim() || ''; }
-
-// ───────────────────────────────────────────────
-// Render table
-// ───────────────────────────────────────────────
+// ─────────────────────────────────────────────────
+// Render
+// ─────────────────────────────────────────────────
 function render() {
   const empty = document.getElementById('empty-state');
   const section = document.getElementById('orders-section');
-  const statsBar = document.getElementById('stats-bar');
-  const tbody = document.getElementById('orders-tbody');
+  const countLabel = document.getElementById('order-count-label');
+  const tabCount = document.getElementById('tab-count-new');
+
+  tabCount.textContent = orders.length;
+  countLabel.textContent = `${orders.length} Order${orders.length !== 1 ? 's' : ''}`;
 
   if (orders.length === 0) {
     empty.classList.remove('hidden');
     section.classList.add('hidden');
-    statsBar.classList.add('hidden');
     return;
   }
   empty.classList.add('hidden');
   section.classList.remove('hidden');
-  statsBar.classList.remove('hidden');
 
-  // Stats
-  const issues = orders.filter(o => o.analysis.overall_status !== 'ok').length;
-  document.getElementById('stat-total').textContent = orders.length;
-  document.getElementById('stat-issues').textContent = issues;
-  document.getElementById('stat-ok').textContent = orders.length - issues;
-
-  tbody.innerHTML = orders.map(order => {
-    const a = order.analysis;
-    const badge = statusBadge(a.overall_status);
-    const appliedSlab = a.applied_slab != null ? `${a.applied_slab} kg` : '—';
-    const appliedWt = order.applied_weight_kg != null ? `${order.applied_weight_kg} kg` : '—';
-    return `
-      <tr class="hover:bg-gray-50 cursor-pointer fade-in" onclick="openDetail('${order.id}')">
-        <td class="px-5 py-4">
-          <p class="font-medium text-gray-900 text-sm truncate max-w-xs">${esc(order.sku_name)}</p>
-          <p class="text-xs text-gray-400 mt-0.5">${esc(order.sku)}</p>
-        </td>
-        <td class="px-5 py-4 text-sm text-gray-700">${order.quantity}</td>
-        <td class="px-5 py-4 text-sm text-gray-700">${appliedWt}</td>
-        <td class="px-5 py-4 text-sm font-medium text-gray-900">${a.predicted_dead_weight_kg} kg</td>
-        <td class="px-5 py-4 text-sm text-gray-700">${appliedSlab}</td>
-        <td class="px-5 py-4 text-sm font-medium text-gray-900">${a.predicted_slab} kg</td>
-        <td class="px-5 py-4">${badge}</td>
-        <td class="px-5 py-4 text-right">
-          <svg class="w-4 h-4 text-gray-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-          </svg>
-        </td>
-      </tr>`;
-  }).join('');
+  document.getElementById('orders-tbody').innerHTML = orders.map(o => rowHTML(o)).join('');
 }
 
-// ───────────────────────────────────────────────
-// Detail panel content
-// ───────────────────────────────────────────────
-function renderDetail(order) {
-  const a = order.analysis;
-  const sections = [];
+function rowHTML(o) {
+  const a = o.analysis;
+  const dt = new Date(o.created_at);
+  const dateStr = dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'2-digit' });
+  const timeStr = dt.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true });
+
+  // Package column - weight analysis
+  const slabMismatch = a.applied_slab !== null && Math.abs(a.applied_slab - a.predicted_slab) > 0.01;
+  const warnClass = { ok:'weight-ok', warning:'weight-warn', critical:'weight-crit' }[a.overall_status] || 'weight-warn';
+  const declaredWt = o.applied_weight_kg != null ? `${o.applied_weight_kg} Kg` : '— Kg';
+
+  // dims display
+  let dimsStr = '';
+  if (o.package_length_cm) dimsStr = `(${o.package_length_cm}x${o.package_width_cm}x${o.package_height_cm})`;
+
+  const pkgCell = `
+    <div class="space-y-1">
+      <div class="flex items-center gap-1.5">
+        <span class="text-sm font-semibold text-gray-900">${declaredWt}</span>
+        ${slabMismatch ? `<span class="inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded border ${warnClass}">
+          ⚠ ${a.predicted_slab} kg predicted
+        </span>` : `<span class="inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded border weight-ok">✓ OK</span>`}
+      </div>
+      <div class="text-xs text-gray-400">
+        <span class="block">Dead Weight <span class="text-gray-600">${o.applied_weight_kg ? (o.applied_weight_kg > 0.01 ? o.applied_weight_kg + ' Kg' : '0 Kg') : '0 Kg'}</span></span>
+        <span class="block">Predicted Dead Wt <span class="font-medium text-gray-700">${a.predicted_dead_weight_kg} Kg</span></span>
+        ${dimsStr ? `<span class="block">Dims <span class="text-gray-600">${dimsStr}</span></span>` : ''}
+      </div>
+    </div>`;
+
+  const statusColor = { ok:'bg-blue-100 text-blue-700', warning:'bg-amber-100 text-amber-700', critical:'bg-red-100 text-red-700' }[a.overall_status] || 'bg-blue-100 text-blue-700';
+
+  return `
+    <tr class="hover:bg-gray-50/70 cursor-pointer fade-in group" onclick="openDetail('${o.id}')">
+      <td class="px-4 py-4" onclick="event.stopPropagation()"><input type="checkbox" class="rounded border-gray-300"/></td>
+
+      <!-- Order ID -->
+      <td class="px-4 py-4 align-top">
+        <div class="text-sm font-bold text-brand-500 hover:underline">UBKWS-${o.displayId}</div>
+        <div class="text-xs text-gray-400 mt-0.5">${dateStr} | ${timeStr}</div>
+        <button class="mt-2 text-xs border border-gray-200 rounded px-2 py-0.5 text-gray-500 hover:bg-gray-100 block" onclick="event.stopPropagation()">VIEW RTO RISK</button>
+        <div class="mt-1.5 flex items-center gap-1 text-xs text-gray-400">
+          <span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
+          Unboxkar-W…
+        </div>
+      </td>
+
+      <!-- Customer -->
+      <td class="px-4 py-4 align-top">
+        <div class="text-sm font-semibold text-gray-800">Customer</div>
+        <div class="text-xs text-gray-400 mt-0.5">—</div>
+        <div class="text-xs text-gray-400">customer@example.com</div>
+        <div class="text-xs text-gray-400 mt-1">Unboxkar Warehouse</div>
+      </td>
+
+      <!-- Product -->
+      <td class="px-4 py-4 align-top max-w-xs">
+        <div class="text-sm font-semibold text-gray-800 truncate max-w-[180px]">${esc(o.sku_name)}</div>
+        <div class="text-xs text-gray-400 mt-0.5">Qty ${o.quantity}</div>
+        <div class="text-xs text-gray-400">SKU: ${esc(o.sku)}</div>
+        <div class="text-xs text-gray-400">HSN: NA</div>
+      </td>
+
+      <!-- Package + Weight Analysis -->
+      <td class="px-4 py-4 align-top">${pkgCell}</td>
+
+      <!-- Payment -->
+      <td class="px-4 py-4 align-top">
+        <div class="text-sm font-semibold text-gray-800">—</div>
+        <div class="text-xs text-green-600 font-medium mt-0.5">Pre-Paid</div>
+      </td>
+
+      <!-- Pickup -->
+      <td class="px-4 py-4 align-top">
+        <div class="text-sm text-gray-700">Unboxkar WH</div>
+      </td>
+
+      <!-- Status -->
+      <td class="px-4 py-4 align-top">
+        <span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+          <span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span> New
+        </span>
+        ${a.overall_status !== 'ok' ? `<div class="mt-1.5"><span class="text-xs font-semibold px-2 py-0.5 rounded-full border ${warnClass}">${a.overall_status === 'critical' ? '✕ Weight Issue' : '⚠ Check Weight'}</span></div>` : ''}
+      </td>
+
+      <!-- Actions -->
+      <td class="px-4 py-4 align-top" onclick="event.stopPropagation()">
+        <div class="flex items-center gap-2">
+          <button class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          </button>
+          <button class="flex items-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+            SHIP
+          </button>
+          <button class="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+}
+
+// ─────────────────────────────────────────────────
+// Detail panel
+// ─────────────────────────────────────────────────
+function buildDetail(o) {
+  const a = o.analysis;
+  const bannerCls = { ok:'bg-green-50 border-green-200 text-green-800', warning:'bg-amber-50 border-amber-200 text-amber-800', critical:'bg-red-50 border-red-200 text-red-800' }[a.overall_status];
+  const icon = { ok:'✓', warning:'⚠', critical:'✕' }[a.overall_status];
+
+  let html = '';
 
   // Summary banner
-  const bannerColor = { ok: 'bg-green-50 border-green-200 text-green-800', warning: 'bg-amber-50 border-amber-200 text-amber-800', critical: 'bg-red-50 border-red-200 text-red-800' }[a.overall_status];
-  sections.push(`
-    <div class="border rounded-xl px-4 py-3 ${bannerColor} text-sm font-medium">
-      ${statusIcon(a.overall_status)} ${esc(a.summary)}
-    </div>`);
+  html += `<div class="border rounded-xl px-4 py-3 text-sm font-semibold ${bannerCls}">
+    ${icon} ${esc(a.summary)}
+  </div>`;
 
-  // Weight card
-  sections.push(`
-    <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-        <span class="text-sm font-semibold text-gray-800">Weight Analysis</span>
-        <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">${confidenceLabel(a.weight_confidence)} confidence · ${esc(a.weight_basis)}</span>
+  // Weight comparison card
+  const slabMatch = a.applied_slab !== null && Math.abs((a.applied_slab || 0) - a.predicted_slab) < 0.01;
+  html += `
+    <div class="border border-gray-200 rounded-xl overflow-hidden">
+      <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+        <span class="text-sm font-bold text-gray-800">Weight Analysis</span>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-500">${confidenceLabel(a.weight_confidence)} confidence · ${esc(a.weight_basis)}</span>
       </div>
-      <div class="px-4 py-4 grid grid-cols-2 gap-4">
-        <div>
-          <p class="text-xs text-gray-500 mb-0.5">Predicted Dead Weight</p>
-          <p class="text-xl font-bold text-gray-900">${a.predicted_dead_weight_kg} kg</p>
-          <p class="text-xs text-gray-400 mt-0.5">→ slab <span class="font-semibold text-gray-700">${a.predicted_slab} kg</span></p>
-        </div>
-        <div>
-          <p class="text-xs text-gray-500 mb-0.5">Applied Weight</p>
-          <p class="text-xl font-bold ${a.applied_slab !== a.predicted_slab ? 'text-red-500' : 'text-green-600'}">${order.applied_weight_kg != null ? order.applied_weight_kg + ' kg' : '—'}</p>
-          <p class="text-xs text-gray-400 mt-0.5">→ slab <span class="font-semibold">${a.applied_slab != null ? a.applied_slab + ' kg' : '—'}</span></p>
-        </div>
-      </div>
-      ${a.weight_issues.map(issue => issueCard(issue)).join('')}
-    </div>`);
-
-  // Package card
-  if (a.package_decision) {
-    const decisionColor = { keep: 'text-green-700 bg-green-50', switch: 'text-amber-700 bg-amber-50', create: 'text-red-700 bg-red-50' }[a.package_decision] || '';
-    let pkgDetails = '';
-    if (a.package_decision === 'switch' && a.recommended_package_id) {
-      pkgDetails = `<p class="text-xs text-gray-600 mt-2">Switch to package <span class="font-mono bg-gray-100 px-1 rounded text-xs">${esc(a.recommended_package_id)}</span></p>`;
-    } else if (a.package_decision === 'create' && a.suggested_new_dims_cm) {
-      const d = a.suggested_new_dims_cm;
-      pkgDetails = `<p class="text-xs text-gray-600 mt-2">Suggested dims: <span class="font-semibold">${d.length_cm} × ${d.width_cm} × ${d.height_cm} cm</span>${d.estimated_slab ? ` → slab ${d.estimated_slab} kg` : ''}</p>`;
-    }
-    sections.push(`
-      <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <span class="text-sm font-semibold text-gray-800">Package Recommendation</span>
-          <span class="text-xs px-2 py-0.5 rounded-full font-semibold uppercase ${decisionColor}">${a.package_decision}</span>
+      <div class="grid grid-cols-2 divide-x divide-gray-100">
+        <div class="px-4 py-4">
+          <p class="text-xs text-gray-400 mb-1">Applied Weight</p>
+          <p class="text-2xl font-bold ${slabMatch ? 'text-green-600' : 'text-red-500'}">${o.applied_weight_kg != null ? o.applied_weight_kg + ' kg' : '—'}</p>
+          <p class="text-xs text-gray-400 mt-1">Slab → <span class="font-semibold text-gray-700">${a.applied_slab != null ? a.applied_slab + ' kg' : '—'}</span></p>
         </div>
         <div class="px-4 py-4">
-          <p class="text-sm text-gray-700">${esc(a.package_reason || '')}</p>
-          ${pkgDetails}
+          <p class="text-xs text-gray-400 mb-1">Predicted Weight</p>
+          <p class="text-2xl font-bold text-gray-900">${a.predicted_dead_weight_kg} kg</p>
+          <p class="text-xs text-gray-400 mt-1">Slab → <span class="font-semibold text-brand-500">${a.predicted_slab} kg</span></p>
         </div>
-      </div>`);
+      </div>
+      ${a.weight_issues.map(issue => `
+        <div class="mx-4 mb-4 border rounded-lg px-3 py-3 ${{ ok:'border-green-200 bg-green-50', warning:'border-amber-200 bg-amber-50', critical:'border-red-200 bg-red-50' }[issue.severity]}">
+          <p class="text-xs font-bold ${{ ok:'text-green-800', warning:'text-amber-800', critical:'text-red-700' }[issue.severity]} mb-1">${{ ok:'✓', warning:'⚠', critical:'✕' }[issue.severity]} ${esc(issue.title)}</p>
+          <p class="text-xs text-gray-700 mb-1.5">${esc(issue.detail)}</p>
+          <p class="text-xs text-gray-500"><span class="font-semibold">Suggested action:</span> ${esc(issue.suggestion)}</p>
+        </div>`).join('')}
+    </div>`;
+
+  // Package recommendation
+  if (a.package_decision) {
+    const decColor = { keep:'bg-green-100 text-green-700 border-green-200', switch:'bg-amber-100 text-amber-700 border-amber-200', create:'bg-red-100 text-red-700 border-red-200' }[a.package_decision] || '';
+    let pkgExtra = '';
+    if (a.package_decision === 'switch' && a.recommended_package_id) {
+      pkgExtra = `<div class="mt-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-800">
+        <span class="font-semibold">Switch to:</span> <span class="font-mono">${esc(a.recommended_package_id)}</span>
+      </div>`;
+    } else if (a.package_decision === 'create' && a.suggested_new_dims_cm) {
+      const d = a.suggested_new_dims_cm;
+      pkgExtra = `<div class="mt-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-800">
+        <span class="font-semibold">Create package:</span> ${d.length_cm} × ${d.width_cm} × ${d.height_cm} cm${d.estimated_slab ? ` → slab ${d.estimated_slab} kg` : ''}
+        ${d.note ? `<br><span class="text-gray-500">${esc(d.note)}</span>` : ''}
+      </div>`;
+    }
+    html += `
+      <div class="border border-gray-200 rounded-xl overflow-hidden">
+        <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+          <span class="text-sm font-bold text-gray-800">Package Recommendation</span>
+          <span class="text-xs font-bold px-2.5 py-0.5 rounded-full border uppercase ${decColor}">${a.package_decision}</span>
+        </div>
+        <div class="px-4 py-4">
+          <p class="text-sm text-gray-700 leading-relaxed">${esc(a.package_reason || '')}</p>
+          ${pkgExtra}
+        </div>
+      </div>`;
   }
 
   // Order meta
-  sections.push(`
-    <div class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-xs text-gray-500 space-y-1.5">
-      <div class="flex justify-between"><span>SKU</span><span class="font-mono text-gray-700">${esc(order.sku)}</span></div>
-      <div class="flex justify-between"><span>Quantity</span><span class="text-gray-700">${order.quantity}</span></div>
-      <div class="flex justify-between"><span>Client ID</span><span class="font-mono text-gray-700">${esc(order.client_id)}</span></div>
-      ${order.package_length_cm ? `<div class="flex justify-between"><span>Package dims</span><span class="text-gray-700">${order.package_length_cm}×${order.package_width_cm}×${order.package_height_cm} cm</span></div>` : ''}
-      <div class="flex justify-between"><span>Analysed at</span><span class="text-gray-700">${new Date(order.created_at).toLocaleString()}</span></div>
-    </div>`);
-
-  return sections.join('');
-}
-
-// ───────────────────────────────────────────────
-// Helpers
-// ───────────────────────────────────────────────
-function issueCard(issue) {
-  const colors = {
-    ok:       'border-green-200 bg-green-50',
-    warning:  'border-amber-200 bg-amber-50',
-    critical: 'border-red-200 bg-red-50',
-  };
-  const titleColors = { ok: 'text-green-800', warning: 'text-amber-800', critical: 'text-red-700' };
-  return `
-    <div class="mx-4 mb-4 border rounded-lg px-3 py-3 ${colors[issue.severity] || 'border-gray-200'}">
-      <p class="text-xs font-semibold ${titleColors[issue.severity] || ''} mb-0.5">${statusIcon(issue.severity)} ${esc(issue.title)}</p>
-      <p class="text-xs text-gray-700 mb-1">${esc(issue.detail)}</p>
-      <p class="text-xs text-gray-500"><span class="font-medium">Suggestion:</span> ${esc(issue.suggestion)}</p>
+  html += `
+    <div class="border border-gray-100 rounded-xl bg-gray-50 px-4 py-4 text-xs space-y-2">
+      <div class="flex justify-between text-gray-500"><span>Order ID</span><span class="font-mono font-semibold text-gray-700">UBKWS-${o.displayId}</span></div>
+      <div class="flex justify-between text-gray-500"><span>SKU</span><span class="font-mono text-gray-700">${esc(o.sku)}</span></div>
+      <div class="flex justify-between text-gray-500"><span>Quantity</span><span class="text-gray-700">${o.quantity}</span></div>
+      <div class="flex justify-between text-gray-500"><span>Client ID</span><span class="font-mono text-gray-700">${esc(o.client_id)}</span></div>
+      ${o.package_length_cm ? `<div class="flex justify-between text-gray-500"><span>Package dims</span><span class="text-gray-700">${o.package_length_cm}×${o.package_width_cm}×${o.package_height_cm} cm</span></div>` : ''}
+      <div class="flex justify-between text-gray-500"><span>Analysed at</span><span class="text-gray-700">${new Date(o.created_at).toLocaleString('en-IN')}</span></div>
     </div>`;
+
+  return html;
 }
 
-function statusBadge(status) {
-  const cfg = {
-    ok:       'bg-green-100 text-green-700',
-    warning:  'bg-amber-100 text-amber-700',
-    critical: 'bg-red-100 text-red-700',
-  };
-  return `<span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${cfg[status] || 'bg-gray-100 text-gray-600'}">${statusIcon(status)} ${status}</span>`;
-}
+function confidenceLabel(c) { return c >= 0.8 ? 'High' : c >= 0.5 ? 'Medium' : 'Low'; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-function statusIcon(status) {
-  if (status === 'ok') return '✓';
-  if (status === 'critical') return '✕';
-  return '⚠';
-}
-
-function confidenceLabel(c) {
-  if (c >= 0.8) return 'High';
-  if (c >= 0.5) return 'Medium';
-  return 'Low';
-}
-
-function esc(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ───────────────────────────────────────────────
+// ─────────────────────────────────────────────────
 // Init
-// ───────────────────────────────────────────────
+// ─────────────────────────────────────────────────
 render();
 </script>
 </body>
