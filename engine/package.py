@@ -35,7 +35,7 @@ from .vision import DimExtraction, extract_dims_from_urls
 
 def _sorter_history(sku: str, client_id: str) -> pd.DataFrame:
     """Sorter re-weighs for this SKU."""
-    return ch_query("""
+    df = ch_query("""
         SELECT
             min_sorter_weight,
             min_sorter_length, min_sorter_width, min_sorter_height,
@@ -49,6 +49,11 @@ def _sorter_history(sku: str, client_id: str) -> pd.DataFrame:
         ORDER BY shipment_created_at DESC
         LIMIT 300
     """, {"cid": client_id, "sku": sku})
+    expected = {"min_sorter_weight", "min_sorter_length", "min_sorter_width",
+                "min_sorter_height", "max_dead_vol_sorter"}
+    if df.empty or not expected.issubset(df.columns):
+        return pd.DataFrame(columns=list(expected) + ["min_sorter_image_link", "package_id"])
+    return df
 
 
 def _client_package_catalogue(client_id: str) -> list[dict]:
@@ -93,6 +98,8 @@ def _sorter_image_urls(sku: str, client_id: str, limit: int = 3) -> list[str]:
         ORDER BY shipment_created_at DESC
         LIMIT {lim:Int32}
     """, {"cid": client_id, "sku": sku, "lim": limit})
+    if df.empty or "min_sorter_image_link" not in df.columns:
+        return []
     return df["min_sorter_image_link"].dropna().tolist()
 
 
@@ -111,7 +118,8 @@ def _applied_package_sorter_profile(package_id: str, client_id: str) -> dict | N
           AND package_id = {pid:String}
           AND min_sorter_weight > 0
     """, {"cid": client_id, "pid": package_id})
-    if df.empty or int(df["n"].iloc[0]) < 1:
+    expected = {"n", "length", "width", "height", "dead_weight", "median_billable"}
+    if df.empty or not expected.issubset(df.columns) or int(df["n"].iloc[0] or 0) < 1:
         return None
     row = df.iloc[0]
     return {k: float(row[k]) if row[k] is not None else 0.0

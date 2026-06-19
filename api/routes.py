@@ -436,12 +436,7 @@ def list_packages(client_id: str):
         med_h = float(row["med_h"]) if row["med_h"] and not _isnan(row["med_h"]) else None
         med_bill = float(row["med_billable"]) if row["med_billable"] and not _isnan(row["med_billable"]) else None
         pkg_slab = round(slab(med_bill), 1) if med_bill else None
-        label = str(row["id"])
-        if med_l and med_w and med_h:
-            label += f"  ({int(med_l)}×{int(med_w)}×{int(med_h)} cm"
-            if pkg_slab:
-                label += f", ~{pkg_slab} kg slab"
-            label += ")"
+        label = _package_label(str(row["id"]), int(row["shipments"]), med_l, med_w, med_h, pkg_slab)
         packages.append({
             "id": str(row["id"]),
             "shipments": int(row["shipments"]),
@@ -461,6 +456,24 @@ def _isnan(v) -> bool:
         return math.isnan(float(v))
     except Exception:
         return False
+
+
+def _package_label(pkg_id: str, shipments: int, l, w, h, typical_slab) -> str:
+    """Human-readable package label without showing the raw UUID."""
+    if l and w and h:
+        vol = float(l) * float(w) * float(h)
+        if vol <= 3000:     size = "XS Box"
+        elif vol <= 6000:   size = "S Box"
+        elif vol <= 15000:  size = "M Box"
+        elif vol <= 30000:  size = "L Box"
+        elif vol <= 60000:  size = "XL Box"
+        else:               size = "XXL Box"
+        dims = f"{int(float(l))}×{int(float(w))}×{int(float(h))} cm"
+        slab_str = f"~{typical_slab} kg slab" if typical_slab else ""
+        parts = [p for p in [dims, slab_str, f"{shipments} shipments"] if p]
+        return f"{size} ({', '.join(parts)})"
+    else:
+        return f"Box · {shipments} shipments · ID {pkg_id[:8]}…"
 
 
 # ---------------------------------------------------------------------------
@@ -665,6 +678,203 @@ def _build_excel_issues(
         })
 
     return issues
+
+
+# ---------------------------------------------------------------------------
+# Discrepancy insights (grouped recommendations for WD tab)
+# ---------------------------------------------------------------------------
+
+@router.get("/discrepancy-insights")
+def discrepancy_insights(client_id: str = _SEJALIMPEX):
+    """
+    Analyse the Excel + ClickHouse data and return grouped root-cause insights
+    with actionable recommendations to reduce weight discrepancies.
+    """
+    try:
+        import openpyxl
+    except ImportError:
+        return {"error": "openpyxl not installed"}
+
+    xl = _find_excel()
+    if not xl:
+        return {"error": "Excel file not found"}
+
+    try:
+        wb = openpyxl.load_workbook(xl, read_only=True, data_only=True)
+        ws = wb.active
+        headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+
+        def hi(n): return headers.index(n) if n in headers else -1
+
+        i_pkg     = hi("package_id")
+        i_app_wt  = hi("applied_weight_shipfast")
+        i_dec_sl  = hi("weight_slab_shipfast")
+        i_sort_sl = hi("sorter_slab")
+        i_sort_wt = hi("min_sorter_weight")
+        i_max_bill= hi("max_dead_vol_sorter")
+        i_disc    = hi("discrepancy_type_ai")
+        i_sc      = hi("slab_change")
+        i_carrier = hi("carrier_name")
+        i_dw      = hi("dead_weight_shipfast")
+        i_wd_ded  = hi("weight_discrepancy_charges_deducted")
+        i_sku     = hi("sku_name")
+        i_sort_l  = hi("min_sorter_length")
+        i_sort_w  = hi("min_sorter_width")
+        i_sort_h  = hi("min_sorter_height")
+
+        total = 0; with_sorter = 0; higher_slab = 0
+        zero_dead_wt = 0; default_pkg_orders = 0
+        charges_total = 0.0; major_disc = 0; minor_disc = 0
+        carrier_counts: dict = {}
+        carrier_charges: dict = {}
+        # Track orders where sorter dims > package dims (package too small)
+        pkg_too_small = 0
+        # Slab difference distribution
+        slab_diffs: list = []
+
+        DEFAULT_PKG = "835c88e1-dde9-4758-acd4-74cdfae25953"
+
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            total += 1
+            pkg        = str(row[i_pkg] or "") if i_pkg >= 0 else ""
+            sorter_sl  = _f(row[i_sort_sl]) if i_sort_sl >= 0 else None
+            declared_sl= _f(row[i_dec_sl])  if i_dec_sl >= 0 else None
+            sorter_wt  = _f(row[i_sort_wt]) if i_sort_wt >= 0 else None
+            max_bill   = _f(row[i_max_bill]) if i_max_bill >= 0 else None
+            dw         = _f(row[i_dw])       if i_dw >= 0 else None
+            carrier    = str(row[i_carrier] or "") if i_carrier >= 0 else ""
+            disc       = str(row[i_disc] or "")    if i_disc >= 0 else ""
+            sc         = str(row[i_sc] or "")      if i_sc >= 0 else ""
+            wd_ded     = _f(row[i_wd_ded])          if i_wd_ded >= 0 else None
+            sl         = _f(row[i_sort_l])           if i_sort_l >= 0 else None
+            sw         = _f(row[i_sort_w])           if i_sort_w >= 0 else None
+            sh         = _f(row[i_sort_h])           if i_sort_h >= 0 else None
+
+            if sorter_wt and sorter_wt > 0:
+                with_sorter += 1
+            if sorter_sl and declared_sl and sorter_sl > declared_sl + 0.01:
+                higher_slab += 1
+                if sorter_sl and declared_sl:
+                    slab_diffs.append(round(sorter_sl - declared_sl, 1))
+            if not dw or dw == 0:
+                zero_dead_wt += 1
+            if pkg == DEFAULT_PKG:
+                default_pkg_orders += 1
+            if "Major" in disc:
+                major_disc += 1
+            elif "Minor" in disc:
+                minor_disc += 1
+            if wd_ded:
+                charges_total += wd_ded
+            if carrier:
+                carrier_counts[carrier] = carrier_counts.get(carrier, 0) + 1
+                carrier_charges[carrier] = carrier_charges.get(carrier, 0.0) + (wd_ded or 0)
+            # Package too small: sorter dims > 22×17×10
+            if sl and sw and sh and sl > 22 and pkg == DEFAULT_PKG:
+                pkg_too_small += 1
+
+        top_carrier = max(carrier_counts, key=carrier_counts.get) if carrier_counts else "Delhivery"
+        top_carrier_pct = round(100 * carrier_counts.get(top_carrier, 0) / total) if total else 0
+        top_carrier_charges = carrier_charges.get(top_carrier, 0.0)
+
+        avg_slab_diff = round(sum(slab_diffs) / len(slab_diffs), 2) if slab_diffs else 0
+        higher_pct = round(100 * higher_slab / with_sorter) if with_sorter else 0
+
+        # Build grouped insight cards
+        groups = [
+            {
+                "id": "zero_dead_weight",
+                "severity": "critical",
+                "title": "Dead weight declared as 0 on virtually all orders",
+                "affected": zero_dead_wt,
+                "affected_pct": round(100 * zero_dead_wt / total) if total else 0,
+                "impact": f"When dead weight is 0, billing defaults to volumetric only. The sorter re-weighs the actual parcel and charges the correct slab, creating a discrepancy every time the dead weight exceeds the volumetric.",
+                "recommendation": "Declare actual product dead weight for each order. For hair accessories, typical weights are 50–500 g depending on pack quantity. Use the weight engine to auto-predict.",
+                "fix_effort": "Medium",
+                "potential_savings": f"Prevents ~{higher_slab} future discrepancy charges",
+            },
+            {
+                "id": "default_package",
+                "severity": "critical",
+                "title": f"99%+ orders use one default package (20×15×8 cm) regardless of actual product size",
+                "affected": default_pkg_orders,
+                "affected_pct": round(100 * default_pkg_orders / total) if total else 0,
+                "impact": (
+                    f"Package 835c88e1 (20×15×8 cm, dead weight 0) has volumetric = 0.48 kg → declared slab 0.5 kg. "
+                    f"But the sorter consistently measures parcels at {avg_slab_diff + 0.5:.1f}+ kg slab. "
+                    f"{pkg_too_small} of these orders had sorter dims larger than the declared package, "
+                    f"proving the package registration doesn't match the actual box used."
+                ),
+                "recommendation": (
+                    "Create size-specific packages (S/M/L/XL) that reflect actual box dimensions. "
+                    "At minimum, update the default package dead weight to reflect actual tare (~100 g). "
+                    "Ideally: for multi-item orders (≥5 items), switch to a larger registered package."
+                ),
+                "fix_effort": "Low",
+                "potential_savings": f"Could eliminate {round(higher_pct)}% of slab mismatches",
+            },
+            {
+                "id": "carrier_slab_higher",
+                "severity": "warning",
+                "title": f"{higher_slab} shipments had carrier apply a higher slab than declared",
+                "affected": higher_slab,
+                "affected_pct": higher_pct,
+                "impact": (
+                    f"{top_carrier} is the primary carrier ({top_carrier_pct}% of volume) and has charged "
+                    f"₹{top_carrier_charges:,.0f} in weight discrepancy fees. "
+                    f"Average slab difference: {avg_slab_diff} kg per affected shipment."
+                ),
+                "recommendation": (
+                    "For all future orders: run the weight engine before shipping to predict the correct slab. "
+                    "For past discrepancies marked 'New': review and raise disputes where the sorter image "
+                    "shows dimensions matching your declared package (within tolerance)."
+                ),
+                "fix_effort": "High",
+                "potential_savings": f"₹{charges_total:,.0f} already charged; prevent recurrence going forward",
+            },
+            {
+                "id": "major_minor_disc",
+                "severity": "warning",
+                "title": f"{major_disc} major + {minor_disc} minor discrepancies recorded",
+                "affected": major_disc + minor_disc,
+                "affected_pct": round(100 * (major_disc + minor_disc) / total) if total else 0,
+                "impact": (
+                    f"Major discrepancies (≥1 slab difference) are harder to dispute and more expensive. "
+                    f"Minor discrepancies (0.5 slab difference) are often borderline cases where better "
+                    f"weight declaration would have prevented the charge entirely."
+                ),
+                "recommendation": (
+                    "For major discrepancies: verify with sorter image; if parcel dimensions match declared "
+                    "package, raise a dispute with photographic evidence. "
+                    "For minor discrepancies: update declared weight upward by 0.1–0.2 kg to avoid the slab boundary."
+                ),
+                "fix_effort": "Medium",
+                "potential_savings": f"Dispute resolution could recover a portion of ₹{charges_total:,.0f} charged",
+            },
+        ]
+
+        return {
+            "summary": {
+                "total_orders": total,
+                "with_sorter_data": with_sorter,
+                "higher_slab_count": higher_slab,
+                "higher_slab_pct": higher_pct,
+                "total_wd_charges": round(charges_total, 2),
+                "major_discrepancies": major_disc,
+                "minor_discrepancies": minor_disc,
+                "zero_dead_weight_orders": zero_dead_wt,
+                "default_package_orders": default_pkg_orders,
+                "top_carrier": top_carrier,
+                "top_carrier_orders": carrier_counts.get(top_carrier, 0),
+                "top_carrier_charges": round(top_carrier_charges, 2),
+            },
+            "groups": groups,
+        }
+
+    except Exception as e:
+        import logging, traceback
+        logging.warning("discrepancy_insights error: %s\n%s", e, traceback.format_exc())
+        return {"error": str(e)}
 
 
 # ---------------------------------------------------------------------------

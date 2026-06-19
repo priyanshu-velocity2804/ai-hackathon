@@ -85,7 +85,7 @@
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
         Dashboard
       </div>
-      <div class="nav-item active">
+      <div class="nav-item active" id="nav-orders" onclick="showPage('orders')">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
         Orders
       </div>
@@ -109,7 +109,7 @@
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
         Upload History
       </div>
-      <div class="nav-item">
+      <div class="nav-item" id="nav-wd" onclick="showPage('wd')">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
         Weight Discrepancy
       </div>
@@ -140,7 +140,7 @@
   </div>
 
   <!-- ══ MAIN ══ -->
-  <div class="flex-1 flex flex-col overflow-hidden">
+  <div class="flex-1 flex flex-col overflow-hidden" id="page-orders">
 
     <!-- Top bar -->
     <div class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shrink-0">
@@ -241,6 +241,116 @@
         </table>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ══ WEIGHT DISCREPANCY PAGE ══ -->
+<div id="page-wd" class="hidden flex-1 flex flex-col overflow-hidden">
+
+  <!-- Top bar -->
+  <div class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shrink-0">
+    <h1 class="text-xl font-bold text-gray-900">Weight Discrepancy</h1>
+    <div class="flex items-center gap-3">
+      <div class="relative">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+        <input type="text" placeholder="Search for AWB, Order Id" class="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-56"/>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white text-xs font-bold">SI</div>
+        <span class="text-sm font-medium text-gray-700">Sejal</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex-1 overflow-y-auto p-6 space-y-6">
+
+    <!-- Overview cards -->
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-bold text-gray-800">Overview</h2>
+        <span class="text-xs text-gray-400">Based on uploaded data · <span id="wd-last-updated"></span></span>
+      </div>
+      <div class="grid grid-cols-3 gap-4">
+        <!-- New Discrepancies -->
+        <div class="bg-red-50 border border-red-200 rounded-xl p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+            <span class="text-sm font-semibold text-red-700">New Discrepancies</span>
+          </div>
+          <div class="text-3xl font-bold text-gray-900 mb-0.5" id="wd-stat-major">—</div>
+          <div class="text-xs text-gray-500" id="wd-stat-major-label">Major discrepancies</div>
+          <div class="mt-3 text-sm font-bold text-red-600" id="wd-stat-charges">—</div>
+          <div class="text-xs text-gray-400">Total charges deducted</div>
+        </div>
+
+        <!-- Sorter Data -->
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="text-sm font-semibold text-amber-700">Carrier Higher Slab</span>
+          </div>
+          <div class="text-3xl font-bold text-gray-900 mb-0.5" id="wd-stat-higher">—</div>
+          <div class="text-xs text-gray-500" id="wd-stat-higher-label">Shipments where carrier billed higher</div>
+          <div class="mt-3 text-sm font-bold text-amber-600" id="wd-stat-higher-pct">—</div>
+          <div class="text-xs text-gray-400">of sorter-verified shipments</div>
+        </div>
+
+        <!-- Resolved -->
+        <div class="bg-green-50 border border-green-200 rounded-xl p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="text-sm font-semibold text-green-700">Total Orders Analysed</span>
+          </div>
+          <div class="text-3xl font-bold text-gray-900 mb-0.5" id="wd-stat-total">—</div>
+          <div class="text-xs text-gray-500" id="wd-stat-sorter-label">orders in dataset</div>
+          <div class="mt-3 text-sm font-bold text-green-600" id="wd-stat-sorter">—</div>
+          <div class="text-xs text-gray-400">with sorter ground-truth data</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommendations section -->
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-bold text-gray-800">Root Cause Analysis & Recommendations</h2>
+        <span class="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">AI-powered · based on your shipment history</span>
+      </div>
+      <div id="wd-loading" class="text-center py-10 text-gray-400">
+        <div class="spinner mx-auto mb-2" style="width:20px;height:20px;border-width:3px"></div>
+        <p class="text-sm">Analysing discrepancy patterns…</p>
+      </div>
+      <div id="wd-groups" class="space-y-4 hidden"></div>
+    </div>
+
+    <!-- Individual discrepancy table -->
+    <div>
+      <h2 class="text-base font-bold text-gray-800 mb-4">Discrepancy Details</h2>
+      <div class="flex items-center gap-3 mb-3">
+        <div class="flex gap-1 border border-gray-200 rounded-lg p-0.5 bg-gray-50">
+          <button onclick="wdSetTab(this,'all')" class="wd-tab active text-xs font-semibold px-3 py-1.5 rounded-md bg-white shadow-sm text-gray-700">All Discrepancies</button>
+          <button onclick="wdSetTab(this,'major')" class="wd-tab text-xs font-semibold px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700">Major</button>
+          <button onclick="wdSetTab(this,'minor')" class="wd-tab text-xs font-semibold px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700">Minor</button>
+          <button onclick="wdSetTab(this,'no_change')" class="wd-tab text-xs font-semibold px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700">No Change</button>
+        </div>
+        <span id="wd-table-count" class="text-xs text-gray-400"></span>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div id="wd-table-loading" class="text-center py-8 text-gray-400 text-sm">Loading…</div>
+        <table id="wd-table" class="w-full hidden">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Discrepancy Details</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Products</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Applied Weight</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Sorter Weight</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Excess & Action</th>
+            </tr>
+          </thead>
+          <tbody id="wd-tbody" class="divide-y divide-gray-100"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -862,7 +972,202 @@ function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ─────────────────────────────────────────────────
+// Page navigation
+// ─────────────────────────────────────────────────
+let _currentPage = 'orders';
+
+function showPage(page) {
+  _currentPage = page;
+  document.getElementById('page-orders').classList.toggle('hidden', page !== 'orders');
+  document.getElementById('page-orders').classList.toggle('flex', page === 'orders');
+  document.getElementById('page-wd').classList.toggle('hidden', page !== 'wd');
+  document.getElementById('page-wd').classList.toggle('flex', page === 'wd');
+
+  document.getElementById('nav-orders').classList.toggle('active', page === 'orders');
+  document.getElementById('nav-wd').classList.toggle('active', page === 'wd');
+
+  if (page === 'wd') loadWD();
+}
+
+// ─────────────────────────────────────────────────
+// Weight Discrepancy Tab
+// ─────────────────────────────────────────────────
+let _wdLoaded = false;
+let _wdOrders = [];
+let _wdFilter = 'all';
+
+async function loadWD() {
+  if (_wdLoaded) return;
+  _wdLoaded = true;
+
+  // Load insights
+  try {
+    const res = await fetch(`${API}/discrepancy-insights`);
+    const data = await res.json();
+    if (data.summary) renderWDSummary(data.summary);
+    if (data.groups) renderWDGroups(data.groups);
+  } catch(e) {
+    document.getElementById('wd-loading').textContent = 'Could not load insights.';
+  }
+
+  // Load orders for the table
+  try {
+    const res = await fetch(`${API}/seeded-orders?limit=200`);
+    const data = await res.json();
+    _wdOrders = (data.orders || []).filter(o =>
+      o.overall_status !== 'ok' || (o.issues && o.issues.length > 0)
+    );
+    renderWDTable();
+  } catch(e) {
+    document.getElementById('wd-table-loading').textContent = 'Could not load orders.';
+  }
+}
+
+function renderWDSummary(s) {
+  document.getElementById('wd-stat-major').textContent = s.major_discrepancies + s.minor_discrepancies;
+  document.getElementById('wd-stat-major-label').textContent = `${s.major_discrepancies} major + ${s.minor_discrepancies} minor`;
+  document.getElementById('wd-stat-charges').textContent = `₹${(s.total_wd_charges || 0).toLocaleString('en-IN')}`;
+  document.getElementById('wd-stat-higher').textContent = s.higher_slab_count;
+  document.getElementById('wd-stat-higher-label').textContent = `out of ${s.with_sorter_data} sorter-scanned`;
+  document.getElementById('wd-stat-higher-pct').textContent = `${s.higher_slab_pct}% hit rate`;
+  document.getElementById('wd-stat-total').textContent = s.total_orders;
+  document.getElementById('wd-stat-sorter-label').textContent = 'orders in dataset';
+  document.getElementById('wd-stat-sorter').textContent = s.with_sorter_data + ' with sorter data';
+  document.getElementById('wd-last-updated').textContent = new Date().toLocaleDateString('en-IN');
+}
+
+function renderWDGroups(groups) {
+  document.getElementById('wd-loading').classList.add('hidden');
+  const container = document.getElementById('wd-groups');
+  container.classList.remove('hidden');
+
+  const severityConfig = {
+    critical: { border: 'border-red-200', bg: 'bg-red-50', badge: 'bg-red-100 text-red-700', icon: '✕', dot: 'bg-red-500' },
+    warning:  { border: 'border-amber-200', bg: 'bg-amber-50', badge: 'bg-amber-100 text-amber-700', icon: '⚠', dot: 'bg-amber-500' },
+    ok:       { border: 'border-green-200', bg: 'bg-green-50', badge: 'bg-green-100 text-green-700', icon: '✓', dot: 'bg-green-500' },
+  };
+
+  container.innerHTML = groups.map((g, i) => {
+    const c = severityConfig[g.severity] || severityConfig.warning;
+    const effortColor = { Low: 'text-green-600 bg-green-50 border-green-200', Medium: 'text-amber-600 bg-amber-50 border-amber-200', High: 'text-red-600 bg-red-50 border-red-200' }[g.fix_effort] || '';
+
+    return `
+      <div class="bg-white border ${c.border} rounded-xl overflow-hidden shadow-sm">
+        <div class="px-5 py-4 border-b ${c.border} ${c.bg} flex items-start justify-between gap-4">
+          <div class="flex items-start gap-3">
+            <span class="text-lg leading-none mt-0.5">${c.icon}</span>
+            <div>
+              <p class="text-sm font-bold text-gray-900">${esc(g.title)}</p>
+              <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+                <span class="text-xs font-semibold ${c.badge} px-2 py-0.5 rounded-full">${g.affected_pct}% of orders affected · ${g.affected.toLocaleString()} shipments</span>
+                <span class="text-xs font-semibold border ${effortColor} px-2 py-0.5 rounded-full">Fix effort: ${g.fix_effort}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="px-5 py-4 grid grid-cols-2 gap-5">
+          <div>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Impact</p>
+            <p class="text-sm text-gray-700 leading-relaxed">${esc(g.impact)}</p>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Recommended Action</p>
+            <p class="text-sm text-gray-700 leading-relaxed">${esc(g.recommendation)}</p>
+            <div class="mt-3 flex items-center gap-1.5 text-xs font-semibold text-brand-500">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              ${esc(g.potential_savings)}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function wdSetTab(el, filter) {
+  document.querySelectorAll('.wd-tab').forEach(t => {
+    t.classList.remove('active','bg-white','shadow-sm','text-gray-700');
+    t.classList.add('text-gray-500');
+  });
+  el.classList.add('active','bg-white','shadow-sm','text-gray-700');
+  el.classList.remove('text-gray-500');
+  _wdFilter = filter;
+  renderWDTable();
+}
+
+function renderWDTable() {
+  const tbody = document.getElementById('wd-tbody');
+  const table = document.getElementById('wd-table');
+  const loading = document.getElementById('wd-table-loading');
+
+  let orders = _wdOrders;
+  if (_wdFilter === 'major') {
+    orders = orders.filter(o => o.issues && o.issues.some(i => i.severity === 'critical'));
+  } else if (_wdFilter === 'minor') {
+    orders = orders.filter(o => o.issues && o.issues.some(i => i.severity === 'warning') && !o.issues.some(i => i.severity === 'critical'));
+  } else if (_wdFilter === 'no_change') {
+    orders = orders.filter(o => o.overall_status === 'ok');
+  }
+
+  document.getElementById('wd-table-count').textContent = `${orders.length} entries`;
+  loading.classList.add('hidden');
+  table.classList.remove('hidden');
+
+  tbody.innerHTML = orders.slice(0, 100).map(o => {
+    const worstIssue = (o.issues || []).find(i => i.severity === 'critical') || (o.issues || []).find(i => i.severity === 'warning');
+    const statusCls = { critical: 'bg-red-50 border border-red-200 text-red-700', warning: 'bg-amber-50 border border-amber-200 text-amber-700', ok: 'bg-green-50 border border-green-200 text-green-700' }[o.overall_status] || '';
+    const statusLabel = { critical: 'Major Discrepancy', warning: 'Minor Discrepancy', ok: 'No Change' }[o.overall_status] || '—';
+
+    const slab_diff = (o.actual_slab && o.declared_slab) ? (o.actual_slab - o.declared_slab).toFixed(1) : null;
+    const excess = slab_diff && slab_diff > 0 ? `+${slab_diff} kg slab` : null;
+
+    return `
+      <tr class="hover:bg-gray-50/70 fade-in cursor-pointer" onclick="openWDDetail('${o.id}')">
+        <td class="px-4 py-4 align-top">
+          <div class="text-xs font-bold text-brand-500">${esc(o.awb || o.id?.slice(-8) || '—')}</div>
+          <div class="text-xs text-gray-400 mt-0.5">${esc(o.carrier || '—')}</div>
+          <span class="inline-flex mt-1.5 text-xs font-semibold px-2 py-0.5 rounded-full border ${statusCls}">${statusLabel}</span>
+        </td>
+        <td class="px-4 py-4 align-top" style="max-width:200px">
+          <div class="text-sm text-gray-800 leading-snug line-clamp-2">${esc((o.sku_name||'').slice(0,80))}</div>
+          <div class="text-xs text-gray-400 mt-0.5">Qty ${o.quantity||1}</div>
+        </td>
+        <td class="px-4 py-4 align-top">
+          <div class="text-sm font-bold text-gray-900">${o.applied_weight_kg != null ? o.applied_weight_kg + ' kg' : '—'}</div>
+          <div class="text-xs text-gray-400">Slab: ${o.declared_slab != null ? o.declared_slab + ' kg' : '—'}</div>
+        </td>
+        <td class="px-4 py-4 align-top">
+          ${o.sorter_weight
+            ? `<div class="text-sm font-bold text-gray-900">${(+o.sorter_weight).toFixed(3)} kg</div>
+               <div class="text-xs text-gray-400">Slab: ${o.actual_slab != null ? o.actual_slab + ' kg' : '—'}</div>`
+            : `<div class="text-xs text-gray-400">No sorter data</div>`}
+        </td>
+        <td class="px-4 py-4 align-top">
+          ${excess ? `<div class="text-sm font-bold text-red-600">${excess}</div>` : ''}
+          ${worstIssue
+            ? `<div class="text-xs text-gray-600 max-w-xs leading-snug">${esc(worstIssue.suggestion.slice(0,100))}…</div>`
+            : ''}
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function openWDDetail(id) {
+  const o = _wdOrders.find(x => x.id === id);
+  if (!o) return;
+  document.getElementById('detail-title').textContent = o.awb || o.id;
+  document.getElementById('detail-sub').textContent = (o.sku_name || '').slice(0, 70);
+  document.getElementById('detail-body').innerHTML = buildDetail(o);
+  document.getElementById('detail-backdrop').classList.remove('hidden');
+  document.getElementById('detail-panel').classList.remove('translate-x-full');
+}
+
+// ─────────────────────────────────────────────────
 // Start
+// ─────────────────────────────────────────────────
+// Ensure orders page is visible by default
+document.getElementById('page-orders').classList.add('flex');
+document.getElementById('page-wd').classList.add('hidden');
 init();
 </script>
 </body>

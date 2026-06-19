@@ -45,7 +45,7 @@ def _sku_sorter_history(sku: str, client_id: str) -> list[float]:
         ORDER BY shipment_created_at DESC
         LIMIT 200
     """, {"cid": client_id, "sku": sku})
-    if df.empty:
+    if df.empty or "min_sorter_weight" not in df.columns:
         return []
     return df["min_sorter_weight"].dropna().tolist()
 
@@ -63,11 +63,16 @@ def _sku_sorter_dims(sku: str, client_id: str) -> dict | None:
           AND sku = {sku:String}
           AND min_sorter_weight > 0
     """, {"cid": client_id, "sku": sku})
-    if df.empty or df["l"].iloc[0] is None:
+    if df.empty or not {"l", "w", "h", "billable"}.issubset(df.columns):
+        return None
+    if df["l"].iloc[0] is None:
         return None
     row = df.iloc[0]
-    return {"l": float(row["l"]), "w": float(row["w"]), "h": float(row["h"]),
-            "billable": float(row["billable"])}
+    try:
+        return {"l": float(row["l"]), "w": float(row["w"]), "h": float(row["h"]),
+                "billable": float(row["billable"])}
+    except (TypeError, ValueError):
+        return None
 
 
 # ---------------------------------------------------------------------------
