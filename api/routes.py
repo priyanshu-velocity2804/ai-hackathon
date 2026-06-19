@@ -1,6 +1,7 @@
 """FastAPI routes."""
 
 from __future__ import annotations
+from typing import Optional, List, Dict
 from fastapi import APIRouter
 from pydantic import BaseModel
 
@@ -21,10 +22,10 @@ class WeightRequest(BaseModel):
     sku_name: str
     quantity: int = 1
     client_id: str
-    declared_weight_kg: float | None = None
-    package_length_cm: float | None = None
-    package_width_cm: float | None = None
-    package_height_cm: float | None = None
+    declared_weight_kg: Optional[float] = None
+    package_length_cm: Optional[float] = None
+    package_width_cm: Optional[float] = None
+    package_height_cm: Optional[float] = None
 
 
 class WeightResponse(BaseModel):
@@ -49,8 +50,8 @@ class PackageResponse(BaseModel):
     current_package_id: str
     current_slab: float
     target_slab: float
-    recommended_package_id: str | None = None
-    suggested_new_dims_cm: dict | None = None
+    recommended_package_id: Optional[str] = None
+    suggested_new_dims_cm: Optional[dict] = None
     confidence: float
     evidence: dict
     reason: str
@@ -68,13 +69,13 @@ class OrderRequest(BaseModel):
     client_id: str
 
     # What the seller declared
-    applied_weight_kg: float | None = None   # seller's declared billable
-    applied_package_id: str | None = None
+    applied_weight_kg: Optional[float] = None   # seller's declared billable
+    applied_package_id: Optional[str] = None
 
     # Package dims (if known)
-    package_length_cm: float | None = None
-    package_width_cm: float | None = None
-    package_height_cm: float | None = None
+    package_length_cm: Optional[float] = None
+    package_width_cm: Optional[float] = None
+    package_height_cm: Optional[float] = None
 
 
 class WeightIssue(BaseModel):
@@ -88,17 +89,17 @@ class OrderAnalysis(BaseModel):
     # Weight engine
     predicted_dead_weight_kg: float
     predicted_slab: float
-    applied_slab: float | None
+    applied_slab: Optional[float]
     weight_confidence: float
     weight_basis: str
-    weight_issues: list[WeightIssue]
+    weight_issues: List[WeightIssue]
 
     # Package engine (if package_id given)
-    package_decision: str | None        # "keep" | "switch" | "create" | None
-    package_reason: str | None
-    recommended_package_id: str | None
-    suggested_new_dims_cm: dict | None
-    package_confidence: float | None
+    package_decision: Optional[str]        # "keep" | "switch" | "create" | None
+    package_reason: Optional[str]
+    recommended_package_id: Optional[str]
+    suggested_new_dims_cm: Optional[dict]
+    package_confidence: Optional[float]
 
     # Summary
     overall_status: str                 # "ok" | "warning" | "critical"
@@ -108,13 +109,13 @@ class OrderAnalysis(BaseModel):
 def _build_weight_issues(
     predicted_kg: float,
     predicted_slab: float,
-    applied_weight_kg: float | None,
-    pkg_l: float | None,
-    pkg_w: float | None,
-    pkg_h: float | None,
+    applied_weight_kg: Optional[float],
+    pkg_l: Optional[float],
+    pkg_w: Optional[float],
+    pkg_h: Optional[float],
     basis: str,
-    notes: list[str],
-) -> list[WeightIssue]:
+    notes: List[str],
+) -> List[WeightIssue]:
     issues: list[WeightIssue] = []
 
     if applied_weight_kg is None or applied_weight_kg <= 0:
@@ -191,7 +192,7 @@ def analyze_order(req: OrderRequest):
     )
 
     # Applied slab from declared weight
-    applied_slab: float | None = None
+    applied_slab: Optional[float] = None
     if req.applied_weight_kg and req.applied_weight_kg > 0:
         if req.package_length_cm and req.package_width_cm and req.package_height_cm:
             vol = volumetric_kg(req.package_length_cm, req.package_width_cm, req.package_height_cm)
