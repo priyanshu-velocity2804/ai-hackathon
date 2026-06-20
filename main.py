@@ -9,6 +9,7 @@ import os
 load_dotenv()
 
 from api.routes import router
+from api.wd_routes import wd_router, _load as _wd_load
 
 app = FastAPI(
     title="Pre-Ship Weight & Package Intelligence Engine",
@@ -16,6 +17,12 @@ app = FastAPI(
 )
 
 app.include_router(router, prefix="/v1")
+app.include_router(wd_router, prefix="/v1")
+
+@app.on_event("startup")
+def startup_preload():
+    """Kick off WD Excel loading in background so first request is fast."""
+    _wd_load()
 
 # Serve frontend
 _frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")

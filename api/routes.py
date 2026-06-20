@@ -92,10 +92,14 @@ class WeightIssue(BaseModel):
 class OrderAnalysis(BaseModel):
     # Weight engine
     predicted_dead_weight_kg: float
-    predicted_slab: float
-    applied_slab: Optional[float]
+    predicted_slab: float           # volumetric-adjusted (what carrier charges)
+    predicted_dead_slab: float      # dead-weight-only slab (declared perspective)
+    applied_slab: Optional[float]   # volumetric-adjusted carrier slab
+    applied_dead_slab: Optional[float]  # dead-weight-only slab
+    volumetric_kg_pkg: Optional[float]  # package volumetric kg (if dims given)
     weight_confidence: float
     weight_basis: str
+    weight_notes: List[str]
     weight_issues: List[WeightIssue]
 
     # Package engine (if package_id given)
@@ -273,14 +277,22 @@ def analyze_order(req: OrderRequest):
         pkg_h=req.package_height_cm,
     )
 
-    # Applied slab from declared weight
+    # Dead-weight-only slabs (what the seller sees on their label)
+    predicted_dead_slab = slab(w.predicted_dead_weight_kg)
+    applied_dead_slab: Optional[float] = None
+    vol_pkg: Optional[float] = None
+
+    if req.package_length_cm and req.package_width_cm and req.package_height_cm:
+        vol_pkg = volumetric_kg(req.package_length_cm, req.package_width_cm, req.package_height_cm)
+
+    # Applied slab from declared weight (volumetric-adjusted = what carrier charges)
     applied_slab: Optional[float] = None
     if req.applied_weight_kg and req.applied_weight_kg > 0:
-        if req.package_length_cm and req.package_width_cm and req.package_height_cm:
-            vol = volumetric_kg(req.package_length_cm, req.package_width_cm, req.package_height_cm)
-            applied_slab = slab(billable_kg(req.applied_weight_kg, vol))
+        applied_dead_slab = slab(req.applied_weight_kg)
+        if vol_pkg:
+            applied_slab = slab(billable_kg(req.applied_weight_kg, vol_pkg))
         else:
-            applied_slab = slab(req.applied_weight_kg)
+            applied_slab = applied_dead_slab
 
     weight_issues = _build_weight_issues(
         predicted_kg=w.predicted_dead_weight_kg,
@@ -340,9 +352,13 @@ def analyze_order(req: OrderRequest):
     return OrderAnalysis(
         predicted_dead_weight_kg=w.predicted_dead_weight_kg,
         predicted_slab=w.target_slab,
+        predicted_dead_slab=predicted_dead_slab,
         applied_slab=applied_slab,
+        applied_dead_slab=applied_dead_slab,
+        volumetric_kg_pkg=round(vol_pkg, 3) if vol_pkg else None,
         weight_confidence=w.confidence,
         weight_basis=w.basis,
+        weight_notes=w.notes,
         weight_issues=weight_issues,
         package_decision=pkg_decision,
         package_reason=pkg_reason,
@@ -875,6 +891,48 @@ def discrepancy_insights(client_id: str = _SEJALIMPEX):
         import logging, traceback
         logging.warning("discrepancy_insights error: %s\n%s", e, traceback.format_exc())
         return {"error": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# AI Chat — contextual chatbot for WD recommendations
+# ---------------------------------------------------------------------------
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    messages: List[ChatMessage]
+    context: str = ""
+
+@router.post("/chat")
+def chat_endpoint(req: ChatRequest):
+    try:
+        import anthropic
+        from dotenv import load_dotenv
+        _env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+        load_dotenv(_env_path, override=True)
+        api_key = os.environ.get("ANTHROPIC_API_KEY") or ""
+        client = anthropic.Anthropic(api_key=api_key)
+        system = (
+            "You are a weight discrepancy specialist at Velocity Shipping, helping a seller "
+            "(Sejalimpex — hair accessories) reduce weight discrepancy charges from couriers.\n"
+            "Be concise, practical, and specific. Max 3–4 sentences per reply.\n\n"
+        )
+        if req.context:
+            system += f"Context for this conversation:\n{req.context}"
+
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            system=system,
+            messages=[{"role": m.role, "content": m.content} for m in req.messages],
+        )
+        return {"reply": response.content[0].text}
+    except Exception as e:
+        import logging
+        logging.warning("chat error: %s", e)
+        return {"reply": "Sorry, I couldn't process that. Please try again."}
 
 
 # ---------------------------------------------------------------------------

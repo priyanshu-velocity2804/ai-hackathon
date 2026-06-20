@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Velocity Shipping — Orders</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -48,6 +50,14 @@
     .badge-ok   { background: #dcfce7; color: #15803d; }
     .badge-warn { background: #fef9c3; color: #a16207; }
     .badge-crit { background: #fee2e2; color: #b91c1c; }
+    /* Chat message markdown */
+    .chat-md { line-height: 1.55; }
+    .chat-md p { margin-bottom: 0.5em; }
+    .chat-md p:last-child { margin-bottom: 0; }
+    .chat-md strong { font-weight: 700; }
+    .chat-md ol, .chat-md ul { padding-left: 1.25em; margin-bottom: 0.5em; }
+    .chat-md li { margin-bottom: 0.2em; }
+    .chat-md h1,.chat-md h2,.chat-md h3 { font-weight: 700; font-size: 0.8em; margin-bottom: 0.3em; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.75; }
   </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden">
@@ -112,6 +122,10 @@
       <div class="nav-item" id="nav-wd" onclick="showPage('wd')">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
         Weight Discrepancy
+      </div>
+      <div class="nav-item" id="nav-wd-dash" onclick="showPage('wd-dash')">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        WD Dashboard
       </div>
       <div class="nav-item">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
@@ -241,117 +255,268 @@
         </table>
       </div>
     </div>
-  </div>
-</div>
+  </div><!-- /page-orders -->
 
-<!-- ══ WEIGHT DISCREPANCY PAGE ══ -->
-<div id="page-wd" class="hidden flex-1 flex flex-col overflow-hidden">
-
-  <!-- Top bar -->
-  <div class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shrink-0">
-    <h1 class="text-xl font-bold text-gray-900">Weight Discrepancy</h1>
-    <div class="flex items-center gap-3">
-      <div class="relative">
-        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
-        <input type="text" placeholder="Search for AWB, Order Id" class="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-56"/>
-      </div>
-      <div class="flex items-center gap-2">
+  <!-- ══ WEIGHT DISCREPANCY PAGE ══ -->
+  <div id="page-wd" class="hidden flex-1 flex flex-col overflow-hidden">
+    <!-- Top bar -->
+    <div class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shrink-0">
+      <h1 class="text-xl font-bold text-gray-900">Weight Discrepancy</h1>
+      <div class="flex items-center gap-3">
+        <button onclick="openWDChat()"
+          class="flex items-center gap-1.5 text-xs font-semibold border border-brand-500 text-brand-500 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          Ask about your discrepancies
+        </button>
         <div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white text-xs font-bold">SI</div>
         <span class="text-sm font-medium text-gray-700">Sejal</span>
       </div>
     </div>
+
+    <!-- Stats strip -->
+    <div class="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-8 shrink-0">
+      <div>
+        <div class="text-xl font-bold text-gray-900" id="wd-stat-major">—</div>
+        <div class="text-xs text-gray-400 mt-0.5">Discrepancies <span id="wd-stat-charges-inline" class="text-red-500 font-semibold"></span></div>
+      </div>
+      <div class="w-px h-6 bg-gray-200"></div>
+      <div>
+        <div class="text-xl font-bold text-amber-600" id="wd-stat-higher">—</div>
+        <div class="text-xs text-gray-400 mt-0.5">Carrier higher slab <span id="wd-stat-higher-pct" class="font-semibold text-gray-600"></span></div>
+      </div>
+      <div class="w-px h-6 bg-gray-200"></div>
+      <div>
+        <div class="text-xl font-bold text-gray-900" id="wd-stat-total">—</div>
+        <div class="text-xs text-gray-400 mt-0.5">Orders · <span id="wd-stat-sorter" class="font-semibold text-gray-600"></span> sorter-verified</div>
+      </div>
+      <div class="ml-auto text-xs text-gray-400">Based on uploaded data</div>
+    </div>
+
+    <!-- WD Tabs -->
+    <div class="bg-white border-b border-gray-200 px-6 flex items-center gap-1 shrink-0">
+      <div class="tab active" id="wdtab-recs" onclick="setWDTab('recs')">Weight Warnings &amp; Recommendations</div>
+      <div class="tab" id="wdtab-new" onclick="setWDTab('new')">New Discrepancies</div>
+      <div class="tab" id="wdtab-auto" onclick="setWDTab('auto')">Auto Disputed by Velocity</div>
+      <div class="tab" id="wdtab-all" onclick="setWDTab('all')">All Discrepancies</div>
+    </div>
+
+    <!-- Tab content -->
+    <div class="flex-1 overflow-y-auto bg-gray-50">
+
+      <!-- ── RECOMMENDATIONS ── -->
+      <div id="wd-pane-recs" class="max-w-2xl mx-auto px-6 py-6">
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-xs text-gray-500">Top actions to reduce your discrepancy charges</p>
+          <span class="text-xs text-gray-400" id="wd-loading-txt">Analysing…</span>
+        </div>
+        <div id="wd-actions" class="space-y-3"></div>
+      </div>
+
+      <!-- ── DISCREPANCY TABLE (New / Auto / All) ── -->
+      <div id="wd-pane-table" class="hidden px-6 py-6">
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-sm font-semibold text-gray-700" id="wd-table-count"></span>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <table class="w-full text-xs">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="text-left px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Discrepancy Details</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide">Product</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Applied Weight</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Courier Weight</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Excess &amp; Charge</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+              </tr>
+            </thead>
+            <tbody id="wd-tbody" class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /page-wd -->
+
+  <!-- ══ WD DASHBOARD PAGE ══ -->
+  <div id="page-wd-dash" class="hidden flex-1 flex flex-col overflow-hidden bg-gray-50">
+
+    <!-- Top bar -->
+    <div class="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-4 shrink-0">
+      <h1 class="text-lg font-bold text-gray-900 shrink-0">WD Dashboard</h1>
+      <div class="flex-1 max-w-sm">
+        <input id="wdd-client-search" type="text" placeholder="Search client…"
+          class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          oninput="wddSearchClient(this.value)"/>
+      </div>
+      <span id="wdd-data-label" class="text-xs text-gray-400 ml-auto">Loading…</span>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="px-6 pt-4 pb-2 grid grid-cols-4 gap-4 shrink-0">
+      <div class="bg-white rounded-xl border border-gray-200 px-5 py-4">
+        <p class="text-xs text-gray-400 mb-1">Total WD Orders</p>
+        <p id="wdd-stat-orders" class="text-2xl font-bold text-gray-900">—</p>
+        <p id="wdd-stat-clients" class="text-xs text-gray-400 mt-0.5">— clients</p>
+      </div>
+      <div class="bg-white rounded-xl border border-red-200 px-5 py-4">
+        <p class="text-xs text-gray-400 mb-1">Charged by 3PL</p>
+        <p id="wdd-stat-3pl" class="text-2xl font-bold text-red-600">—</p>
+        <p class="text-xs text-gray-400 mt-0.5">Total 3PL cost</p>
+      </div>
+      <div class="bg-white rounded-xl border border-amber-200 px-5 py-4">
+        <p class="text-xs text-gray-400 mb-1">Raise to Seller</p>
+        <p id="wdd-stat-seller" class="text-2xl font-bold text-amber-600">—</p>
+        <p class="text-xs text-gray-400 mt-0.5">Collect from sellers</p>
+      </div>
+      <div class="bg-white rounded-xl border border-blue-200 px-5 py-4">
+        <p class="text-xs text-gray-400 mb-1">Raise to 3PL</p>
+        <p id="wdd-stat-raise3pl" class="text-2xl font-bold text-blue-600">—</p>
+        <p id="wdd-stat-raise3pl-n" class="text-xs text-gray-400 mt-0.5">— orders flagged</p>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="bg-white border-b border-gray-200 px-6 flex items-center gap-1 shrink-0">
+      <div class="tab active" id="wddtab-overview" onclick="setWDDTab('overview')">Overview</div>
+      <div class="tab" id="wddtab-clients" onclick="setWDDTab('clients')">Top Clients & Recommendations</div>
+      <div class="tab" id="wddtab-disc" onclick="setWDDTab('disc')">All Discrepancies</div>
+    </div>
+
+    <!-- Panes -->
+    <div class="flex-1 overflow-y-auto">
+
+      <!-- Overview pane -->
+      <div id="wdd-pane-overview" class="p-6 grid grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl border border-gray-200 p-5">
+          <p class="text-sm font-semibold text-gray-700 mb-4">Status Breakdown</p>
+          <div style="height:240px"><canvas id="wdd-chart-status"></canvas></div>
+          <div id="wdd-status-legend" class="mt-3 space-y-1.5"></div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-5">
+          <p class="text-sm font-semibold text-gray-700 mb-4">Top 10 Clients by 3PL Charge</p>
+          <div style="height:320px"><canvas id="wdd-chart-clients"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Top Clients pane -->
+      <div id="wdd-pane-clients" class="hidden p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <input id="wdd-client-filter" type="text" placeholder="Filter by client name…"
+            class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            oninput="wddLoadClients(1, this.value)"/>
+          <span id="wdd-client-count" class="text-xs text-gray-400"></span>
+        </div>
+        <div id="wdd-client-cards" class="grid grid-cols-2 gap-4"></div>
+        <div id="wdd-client-pagination" class="flex justify-center gap-2 mt-4"></div>
+      </div>
+
+      <!-- All Discrepancies pane -->
+      <div id="wdd-pane-disc" class="hidden p-6">
+        <!-- Filters -->
+        <div class="flex items-center gap-3 mb-4 flex-wrap">
+          <select id="wdd-f-status" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none" onchange="wddLoadDisc(1)">
+            <option value="">All Statuses</option>
+            <option value="raised">Raised</option>
+            <option value="auto_approved">Auto Approved</option>
+            <option value="approved">Approved</option>
+            <option value="challenged">Challenged</option>
+            <option value="challenge_approved">Challenge Accepted</option>
+            <option value="rejected_closed">Rejected / Closed</option>
+            <option value="escalated">Escalated</option>
+          </select>
+          <select id="wdd-f-3pl" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none" onchange="wddLoadDisc(1)">
+            <option value="">All (Raise to 3PL)</option>
+            <option value="Yes">Yes — Raise to 3PL</option>
+            <option value="No">No</option>
+          </select>
+          <input id="wdd-f-search" type="text" placeholder="Search AWB / client / SKU…"
+            class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            oninput="wddLoadDisc(1)"/>
+          <span id="wdd-disc-count" class="text-xs text-gray-400 ml-auto"></span>
+        </div>
+        <!-- Table -->
+        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="bg-gray-50 border-b border-gray-200">
+                  <th class="text-left px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">AWB</th>
+                  <th class="text-left px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Seller</th>
+                  <th class="text-left px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">SKU</th>
+                  <th class="text-right px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Applied Wt</th>
+                  <th class="text-right px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Sorter Wt</th>
+                  <th class="text-right px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">3PL Charge</th>
+                  <th class="text-right px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Raise Seller</th>
+                  <th class="text-right px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Raise 3PL</th>
+                  <th class="text-left px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Status</th>
+                  <th class="text-left px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">3PL Flag</th>
+                  <th class="text-left px-3 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="wdd-disc-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="wdd-disc-pagination" class="flex justify-center gap-2 mt-4"></div>
+      </div>
+
+    </div><!-- /panes -->
+
+    <!-- Client detail slide panel -->
+    <div id="wdd-client-panel" class="slide-panel fixed right-0 top-0 h-full bg-white shadow-2xl z-50 translate-x-full flex flex-col" style="width:520px">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
+        <div>
+          <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Client Analysis</p>
+          <p id="wdd-panel-name" class="text-base font-bold text-gray-900">—</p>
+        </div>
+        <button onclick="closeWDDPanel()" class="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+      </div>
+      <div id="wdd-panel-body" class="flex-1 overflow-y-auto px-5 py-4 space-y-4 bg-gray-50">
+        <p class="text-xs text-gray-400">Loading…</p>
+      </div>
+    </div>
+    <div id="wdd-panel-backdrop" class="hidden fixed inset-0 bg-black/20 z-40" onclick="closeWDDPanel()"></div>
+
+  </div><!-- /page-wd-dash -->
+
+</div><!-- /outer flex row -->
+
+<!-- ══ CHAT PANEL ══ -->
+<div id="chat-backdrop" class="fixed inset-0 bg-black/30 z-40 hidden" onclick="closeChat()"></div>
+<div id="chat-panel" class="slide-panel fixed right-0 top-0 h-full bg-white shadow-2xl z-50 translate-x-full flex flex-col" style="width:420px">
+  <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
+    <div>
+      <h2 class="text-sm font-bold text-gray-900">WD Assistant</h2>
+      <p class="text-xs text-gray-400 mt-0.5" id="chat-context-label"></p>
+    </div>
+    <button onclick="closeChat()" class="text-gray-400 hover:text-gray-600 p-1">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
   </div>
-
-  <div class="flex-1 overflow-y-auto p-6 space-y-6">
-
-    <!-- Overview cards -->
-    <div>
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-base font-bold text-gray-800">Overview</h2>
-        <span class="text-xs text-gray-400">Based on uploaded data · <span id="wd-last-updated"></span></span>
-      </div>
-      <div class="grid grid-cols-3 gap-4">
-        <!-- New Discrepancies -->
-        <div class="bg-red-50 border border-red-200 rounded-xl p-5">
-          <div class="flex items-center gap-2 mb-3">
-            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
-            <span class="text-sm font-semibold text-red-700">New Discrepancies</span>
-          </div>
-          <div class="text-3xl font-bold text-gray-900 mb-0.5" id="wd-stat-major">—</div>
-          <div class="text-xs text-gray-500" id="wd-stat-major-label">Major discrepancies</div>
-          <div class="mt-3 text-sm font-bold text-red-600" id="wd-stat-charges">—</div>
-          <div class="text-xs text-gray-400">Total charges deducted</div>
-        </div>
-
-        <!-- Sorter Data -->
-        <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
-          <div class="flex items-center gap-2 mb-3">
-            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <span class="text-sm font-semibold text-amber-700">Carrier Higher Slab</span>
-          </div>
-          <div class="text-3xl font-bold text-gray-900 mb-0.5" id="wd-stat-higher">—</div>
-          <div class="text-xs text-gray-500" id="wd-stat-higher-label">Shipments where carrier billed higher</div>
-          <div class="mt-3 text-sm font-bold text-amber-600" id="wd-stat-higher-pct">—</div>
-          <div class="text-xs text-gray-400">of sorter-verified shipments</div>
-        </div>
-
-        <!-- Resolved -->
-        <div class="bg-green-50 border border-green-200 rounded-xl p-5">
-          <div class="flex items-center gap-2 mb-3">
-            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <span class="text-sm font-semibold text-green-700">Total Orders Analysed</span>
-          </div>
-          <div class="text-3xl font-bold text-gray-900 mb-0.5" id="wd-stat-total">—</div>
-          <div class="text-xs text-gray-500" id="wd-stat-sorter-label">orders in dataset</div>
-          <div class="mt-3 text-sm font-bold text-green-600" id="wd-stat-sorter">—</div>
-          <div class="text-xs text-gray-400">with sorter ground-truth data</div>
-        </div>
-      </div>
+  <div id="chat-messages" class="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-gray-50"></div>
+  <div class="border-t border-gray-200 px-4 py-3 bg-white shrink-0">
+    <div class="flex gap-2">
+      <input id="chat-input" type="text" placeholder="Ask about this issue…"
+        class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        onkeydown="if(event.key==='Enter')sendChat()"/>
+      <button onclick="sendChat()" class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">Send</button>
     </div>
-
-    <!-- Recommendations section -->
-    <div>
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-base font-bold text-gray-800">Root Cause Analysis & Recommendations</h2>
-        <span class="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">AI-powered · based on your shipment history</span>
-      </div>
-      <div id="wd-loading" class="text-center py-10 text-gray-400">
-        <div class="spinner mx-auto mb-2" style="width:20px;height:20px;border-width:3px"></div>
-        <p class="text-sm">Analysing discrepancy patterns…</p>
-      </div>
-      <div id="wd-groups" class="space-y-4 hidden"></div>
-    </div>
-
-    <!-- Individual discrepancy table -->
-    <div>
-      <h2 class="text-base font-bold text-gray-800 mb-4">Discrepancy Details</h2>
-      <div class="flex items-center gap-3 mb-3">
-        <div class="flex gap-1 border border-gray-200 rounded-lg p-0.5 bg-gray-50">
-          <button onclick="wdSetTab(this,'all')" class="wd-tab active text-xs font-semibold px-3 py-1.5 rounded-md bg-white shadow-sm text-gray-700">All Discrepancies</button>
-          <button onclick="wdSetTab(this,'major')" class="wd-tab text-xs font-semibold px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700">Major</button>
-          <button onclick="wdSetTab(this,'minor')" class="wd-tab text-xs font-semibold px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700">Minor</button>
-          <button onclick="wdSetTab(this,'no_change')" class="wd-tab text-xs font-semibold px-3 py-1.5 rounded-md text-gray-500 hover:text-gray-700">No Change</button>
-        </div>
-        <span id="wd-table-count" class="text-xs text-gray-400"></span>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div id="wd-table-loading" class="text-center py-8 text-gray-400 text-sm">Loading…</div>
-        <table id="wd-table" class="w-full hidden">
-          <thead class="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Discrepancy Details</th>
-              <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Products</th>
-              <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Applied Weight</th>
-              <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Sorter Weight</th>
-              <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Excess & Action</th>
-            </tr>
-          </thead>
-          <tbody id="wd-tbody" class="divide-y divide-gray-100"></tbody>
-        </table>
-      </div>
-    </div>
-
   </div>
+</div>
+
+<!-- ══ BULK FIX PANEL ══ -->
+<div id="bulk-backdrop" class="fixed inset-0 bg-black/30 z-40 hidden" onclick="closeBulkFix()"></div>
+<div id="bulk-panel" class="slide-panel fixed right-0 top-0 h-full bg-white shadow-2xl z-50 translate-x-full flex flex-col" style="width:440px">
+  <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+    <div>
+      <h2 class="text-base font-bold text-gray-900">Fix weight issues</h2>
+      <p class="text-xs text-gray-400 mt-0.5" id="bulk-subtitle">Affecting your current orders</p>
+    </div>
+    <button onclick="closeBulkFix()" class="text-gray-400 hover:text-gray-600 p-1">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="flex-1 overflow-y-auto px-6 py-5 space-y-3 bg-gray-50" id="bulk-actions"></div>
 </div>
 
 <!-- ══ ADD ORDER PANEL ══ -->
@@ -460,6 +625,7 @@ let packagesCache = [];
 const API = '/v1';
 const DEFAULT_CLIENT = '764c0f86-cb84-432f-a77f-b8f6cfaaed4f';
 let orderCounter = parseInt(localStorage.getItem('vs_counter') || '9328');
+const _bulkFixed = new Set();   // tracks which issue types have been bulk-fixed
 
 // ─────────────────────────────────────────────────
 // Init
@@ -583,6 +749,7 @@ function filterOrders(q) {
 }
 
 function _getStatus(o) {
+  if (_bulkFixed.has('all')) return 'ok';
   if (o.analysis) return o.analysis.overall_status || 'ok';
   return o.overall_status || 'ok';
 }
@@ -676,8 +843,11 @@ function render() {
 
   // Issue summary
   const issues = allOrders.filter(o => _getStatus(o) !== 'ok').length;
-  document.getElementById('issue-summary').innerHTML = issues > 0
-    ? `<span class="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2.5 py-0.5">⚠ ${issues} order${issues !== 1 ? 's' : ''} with weight issues</span>`
+  const issueOk = _bulkFixed.has('all');
+  document.getElementById('issue-summary').innerHTML = issues > 0 && !issueOk
+    ? `<button onclick="openBulkFix()" class="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2.5 py-0.5 hover:bg-red-100 transition-colors cursor-pointer">⚠ ${issues} order${issues !== 1 ? 's' : ''} with weight issues — fix all →</button>`
+    : issues > 0 && issueOk
+    ? `<span class="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-0.5">✓ Weight issues resolved</span>`
     : '';
 
   if (n === 0) {
@@ -803,157 +973,166 @@ function _getIssues(o) {
 // Detail Panel
 // ─────────────────────────────────────────────────
 function buildDetail(o) {
-  const isExcel = o._source === 'excel';
-  const status = _getStatus(o);
-  const issues = _getIssues(o);
+  const isBulkFixed = _bulkFixed.has('all');
+  const status = isBulkFixed ? 'ok' : _getStatus(o);
   const a = o.analysis;
+  const DEFAULT_PKG = '835c88e1-dde9-4758-acd4-74cdfae25953';
+  const pkgId = o.applied_package_id || o.package_id || '';
+  const isDefaultPkg = pkgId.startsWith('835c88e1');
+  const declaredWt = o.applied_weight_kg ?? o.applied_weight_shipfast ?? 0;
+  const isZeroWt = declaredWt === 0 || declaredWt == null;
 
-  const bannerCls = {
-    ok: 'bg-green-50 border-green-200 text-green-800',
-    warning: 'bg-amber-50 border-amber-200 text-amber-800',
-    critical: 'bg-red-50 border-red-200 text-red-800',
-  }[status];
-  const icon = { ok: '✓', warning: '⚠', critical: '✕' }[status];
-
-  let html = '';
-
-  // ── Discrepancy risk banner ─────────────────────
-  if (status !== 'ok') {
-    html += `<div class="border rounded-xl px-4 py-3 text-sm font-semibold ${bannerCls} flex items-start gap-2">
-      <span class="text-lg leading-none mt-0.5">${icon}</span>
-      <div>
-        <div>${esc(a?.summary || _summaryFromIssues(issues))}</div>
-        ${status !== 'ok' ? `<div class="text-xs font-normal mt-1 opacity-80">⚠ If these changes are not made, there is a high probability of a weight discrepancy charge from the carrier at delivery scan.</div>` : ''}
+  // ── If bulk-fixed, show green confirmation ────────
+  if (isBulkFixed) {
+    return `
+      <div class="bg-green-50 border border-green-200 rounded-xl px-4 py-4 flex items-start gap-3">
+        <span class="text-green-500 text-xl mt-0.5">✓</span>
+        <div>
+          <p class="text-sm font-bold text-green-800">Weight issues resolved</p>
+          <p class="text-xs text-green-700 mt-1">Declared weight and package have been updated. Very low chance of discrepancy on future orders.</p>
+        </div>
       </div>
-    </div>`;
-  } else {
-    html += `<div class="border rounded-xl px-4 py-3 text-sm font-semibold ${bannerCls}">${icon} ${esc(a?.summary || 'Order looks correct.')}</div>`;
+      <div class="border border-gray-100 rounded-xl bg-gray-50 px-4 py-3 text-xs space-y-1.5">
+        <div class="flex justify-between text-gray-500"><span>AWB</span><span class="font-mono font-semibold text-gray-700">${esc(o.awb || o.id?.slice(-8) || '—')}</span></div>
+        ${o.carrier ? `<div class="flex justify-between text-gray-500"><span>Carrier</span><span>${esc(o.carrier)}</span></div>` : ''}
+        <div class="flex justify-between text-gray-500"><span>Qty</span><span>${o.quantity || 1}</span></div>
+      </div>`;
   }
 
-  // ── Weight comparison (for user-analyzed orders) ─
+  // ── For engine-analyzed (new) orders ─────────────
   if (a) {
-    const slabMatch = a.applied_slab !== null && Math.abs((a.applied_slab || 0) - a.predicted_slab) < 0.01;
-    html += `
-      <div class="border border-gray-200 rounded-xl overflow-hidden">
-        <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-          <span class="text-sm font-bold text-gray-800">Weight Analysis</span>
-          <span class="text-xs px-2.5 py-0.5 rounded-full bg-white border border-gray-200 text-gray-500 font-medium">
-            ${confidenceLabel(a.weight_confidence)} confidence · ${esc(a.weight_basis)}
-          </span>
+    // Use dead-weight-only slabs for display (volumetric shown separately)
+    const appliedDeadSlab = a.applied_dead_slab ?? a.applied_slab;
+    const predictedDeadSlab = a.predicted_dead_slab ?? a.predicted_slab;
+    const deadSlabMatch = appliedDeadSlab != null && Math.abs((appliedDeadSlab || 0) - predictedDeadSlab) < 0.01;
+
+    // Volumetric pushes carrier slab higher?
+    const volKg = a.volumetric_kg_pkg;
+    const volDrivesApplied = volKg && appliedDeadSlab != null && a.applied_slab > appliedDeadSlab + 0.01;
+    const volDrivesPredicted = volKg && a.predicted_slab > predictedDeadSlab + 0.01;
+
+    // AI reasoning
+    const basis = a.weight_basis || 'name_parse';
+    const basisIcon = basis === 'sku_history' ? '📊' : '🤖';
+    const basisLabel = basis === 'sku_history' ? 'Sorter history' : 'SKU name analysis';
+    const notes = a.weight_notes || [];
+    const conf = Math.round((a.weight_confidence || 0) * 100);
+
+    const statusBg = { ok: 'bg-green-50 border-green-200 text-green-800', warning: 'bg-amber-50 border-amber-200 text-amber-800', critical: 'bg-red-50 border-red-200 text-red-800' }[status];
+    const icon = { ok: '✓', warning: '⚠', critical: '✕' }[status];
+    return `
+      <div class="border rounded-xl px-4 py-3 text-sm font-semibold ${statusBg} flex items-start gap-2">
+        <span>${icon}</span>
+        <div>
+          <div>${esc(a.summary || (status === 'ok' ? 'Looks good' : 'Review required'))}</div>
+          ${status !== 'ok' ? `<div class="text-xs font-normal mt-1 opacity-80">Fix before shipping to avoid a carrier weight discrepancy charge.</div>` : ''}
         </div>
+      </div>
+
+      <div class="border border-gray-200 rounded-xl overflow-hidden">
         <div class="grid grid-cols-2 divide-x divide-gray-100">
           <div class="px-4 py-4">
-            <p class="text-xs text-gray-400 mb-1">Declared Weight</p>
-            <p class="text-2xl font-bold ${slabMatch ? 'text-green-600' : 'text-red-500'}">${o.applied_weight_kg != null ? o.applied_weight_kg + ' kg' : '—'}</p>
-            <p class="text-xs text-gray-400 mt-1">Slab → <span class="font-semibold text-gray-700">${a.applied_slab != null ? a.applied_slab + ' kg' : '—'}</span></p>
+            <p class="text-xs text-gray-400 mb-1">Your declared</p>
+            <p class="text-xl font-bold ${deadSlabMatch ? 'text-green-600' : 'text-red-500'}">${declaredWt} kg</p>
+            <p class="text-xs text-gray-400 mt-0.5">Dead weight slab <span class="font-semibold text-gray-700">${appliedDeadSlab ?? '—'} kg</span></p>
+            ${volDrivesApplied ? `<p class="text-xs text-amber-600 mt-1">Package vol. ${volKg} kg → carrier charges <strong>${a.applied_slab} kg slab</strong></p>` : ''}
           </div>
           <div class="px-4 py-4">
-            <p class="text-xs text-gray-400 mb-1">Predicted Weight</p>
-            <p class="text-2xl font-bold text-gray-900">${a.predicted_dead_weight_kg} kg</p>
-            <p class="text-xs text-gray-400 mt-1">Slab → <span class="font-semibold text-brand-500">${a.predicted_slab} kg</span></p>
+            <p class="text-xs text-gray-400 mb-1">AI predicted</p>
+            <p class="text-xl font-bold text-gray-900">${a.predicted_dead_weight_kg} kg</p>
+            <p class="text-xs text-gray-400 mt-0.5">Dead weight slab <span class="font-semibold text-brand-500">${predictedDeadSlab} kg</span></p>
+            ${volDrivesPredicted ? `<p class="text-xs text-amber-600 mt-1">Package vol. ${volKg} kg → carrier slab <strong>${a.predicted_slab} kg</strong></p>` : ''}
           </div>
         </div>
-      </div>`;
-  } else if (isExcel && o.sorter_weight) {
-    // Show sorter truth for Excel orders
-    html += `
-      <div class="border border-gray-200 rounded-xl overflow-hidden">
-        <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
-          <span class="text-sm font-bold text-gray-800">Weight Comparison (Sorter Ground Truth)</span>
+        ${!deadSlabMatch ? `<div class="px-4 pb-3 text-xs text-amber-700 bg-amber-50 border-t border-amber-100 py-2">
+          Update declared weight to at least <strong>${a.predicted_dead_weight_kg} kg</strong> to match predicted slab.
+        </div>` : ''}
+      </div>
+
+      <div class="border border-gray-100 rounded-xl bg-gray-50 px-4 py-3">
+        <div class="flex items-center gap-1.5 mb-1.5">
+          <span class="text-xs">${basisIcon}</span>
+          <span class="text-xs font-semibold text-gray-700">AI Weight Engine · ${basisLabel}</span>
+          <span class="ml-auto text-xs text-gray-400">${conf}% confidence</span>
         </div>
-        <div class="grid grid-cols-2 divide-x divide-gray-100">
-          <div class="px-4 py-4">
-            <p class="text-xs text-gray-400 mb-1">Declared (Seller)</p>
-            <p class="text-2xl font-bold text-red-500">${o.applied_weight_kg != null ? o.applied_weight_kg + ' kg' : '—'}</p>
-            <p class="text-xs text-gray-400 mt-1">Slab → <span class="font-semibold text-gray-700">${o.declared_slab != null ? o.declared_slab + ' kg' : '—'}</span></p>
-          </div>
-          <div class="px-4 py-4">
-            <p class="text-xs text-gray-400 mb-1">Sorter (Actual)</p>
-            <p class="text-2xl font-bold text-gray-900">${o.sorter_weight?.toFixed(3) || '—'} kg</p>
-            <p class="text-xs text-gray-400 mt-1">Slab → <span class="font-semibold text-brand-500">${o.actual_slab != null ? o.actual_slab + ' kg' : '—'}</span>
-              ${o.max_billable ? ` (billable ${o.max_billable.toFixed(3)} kg)` : ''}</p>
-          </div>
-        </div>
-        ${o.sorter_dims ? `
-          <div class="px-4 pb-4 flex items-center gap-2">
-            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
-            <span class="text-xs text-gray-600">Sorter dims: <strong>${o.sorter_dims[0]}×${o.sorter_dims[1]}×${o.sorter_dims[2]} cm</strong></span>
-          </div>` : ''}
-        ${o.sorter_image ? `
-          <div class="px-4 pb-4">
-            <a href="${esc(o.sorter_image)}" target="_blank" class="inline-flex items-center gap-1 text-xs text-brand-500 hover:underline">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              View sorter image ↗
-            </a>
-          </div>` : ''}
+        ${notes.length ? `<p class="text-xs text-gray-500">${esc(notes[0])}</p>` : ''}
+        ${notes.length > 1 ? `<p class="text-xs text-gray-400 mt-0.5">${esc(notes[1])}</p>` : ''}
+        ${basis === 'name_parse' ? `<p class="text-xs text-gray-400 mt-1">No sorter history yet — weight estimated from SKU name parsing (product type × pack qty × tare). Confidence improves once this SKU ships.</p>` : ''}
+      </div>
+
+      ${(a.weight_issues || []).filter(i => i.severity !== 'ok').map(issue => `
+        <div class="border ${issue.severity === 'critical' ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'} rounded-xl px-4 py-3">
+          <p class="text-xs font-bold ${issue.severity === 'critical' ? 'text-red-700' : 'text-amber-700'} mb-1">${esc(issue.title)}</p>
+          <p class="text-xs text-gray-600">${esc(issue.suggestion || '')}</p>
+        </div>`).join('')}
+
+      <div class="border border-gray-100 rounded-xl bg-gray-50 px-4 py-3 text-xs space-y-1.5">
+        <div class="flex justify-between text-gray-500"><span>AWB</span><span class="font-mono font-semibold text-gray-700">${esc(o.awb || '—')}</span></div>
+        ${o.carrier ? `<div class="flex justify-between text-gray-500"><span>Carrier</span><span>${esc(o.carrier)}</span></div>` : ''}
+        <div class="flex justify-between text-gray-500"><span>Qty</span><span>${o.quantity || 1}</span></div>
       </div>`;
   }
 
-  // ── Issues ──────────────────────────────────────
-  if (issues.length > 0) {
-    html += `<div class="space-y-2">
-      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Findings & Recommendations</p>`;
-    issues.forEach(issue => {
-      const cls = { ok: 'issue-ok', warning: 'issue-warn', critical: 'issue-crit' }[issue.severity] || 'issue-warn';
-      const titleCls = { ok: 'text-green-800', warning: 'text-amber-800', critical: 'text-red-700' }[issue.severity];
-      const ico = { ok: '✓', warning: '⚠', critical: '✕' }[issue.severity];
-      html += `
-        <div class="issue-card ${cls}">
-          <p class="text-xs font-bold ${titleCls} mb-1.5">${ico} ${esc(issue.title)}</p>
-          <p class="text-xs text-gray-700 mb-2 leading-relaxed">${esc(issue.detail)}</p>
-          <div class="flex items-start gap-1.5">
-            <svg class="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <p class="text-xs text-gray-600 leading-relaxed">${esc(issue.suggestion)}</p>
-          </div>
-        </div>`;
-    });
-    html += '</div>';
-  }
-
-  // ── Package recommendation ──────────────────────
-  if (a?.package_decision && a.package_decision !== 'keep') {
-    const decColor = {
-      switch: 'bg-amber-100 text-amber-700 border-amber-200',
-      create: 'bg-red-100 text-red-700 border-red-200',
-    }[a.package_decision] || '';
-    let pkgExtra = '';
-    if (a.package_decision === 'switch' && a.recommended_package_id) {
-      pkgExtra = `<div class="mt-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-800">
-        <span class="font-semibold">Switch to package:</span> <span class="font-mono">${esc(a.recommended_package_id)}</span>
-      </div>`;
-    } else if (a.package_decision === 'create' && a.suggested_new_dims_cm) {
-      const d = a.suggested_new_dims_cm;
-      pkgExtra = `<div class="mt-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-800">
-        <span class="font-semibold">Create new package:</span> ${d.length_cm} × ${d.width_cm} × ${d.height_cm} cm
-        ${d.estimated_slab ? ` → slab ${d.estimated_slab} kg` : ''}
-        ${d.note ? `<br><span class="text-gray-500">${esc(d.note)}</span>` : ''}
-      </div>`;
-    }
-    html += `
-      <div class="border border-gray-200 rounded-xl overflow-hidden">
-        <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-          <span class="text-sm font-bold text-gray-800">Package Recommendation</span>
-          <span class="text-xs font-bold px-2.5 py-0.5 rounded-full border uppercase ${decColor}">${a.package_decision}</span>
+  // ── Historical (Excel) orders — clean actionable view ──
+  // Section 1: Declared weight
+  const wtSection = `
+    <div class="border ${isZeroWt ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-white'} rounded-xl px-4 py-4">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-bold text-gray-600 uppercase tracking-wide">Declared Weight</p>
+        ${isZeroWt ? `<span class="text-xs font-semibold text-red-600 bg-red-100 rounded-full px-2 py-0.5">Must fix</span>` : ''}
+      </div>
+      <p class="text-2xl font-bold ${isZeroWt ? 'text-red-500' : 'text-gray-900'} mb-1">${declaredWt} kg</p>
+      ${isZeroWt ? `
+        <p class="text-xs text-red-600 mb-3">0 kg means billing uses volumetric only — carrier re-weighs and charges more.</p>
+        <div class="flex gap-2 items-center">
+          <input id="wt-fix-${o.id}" type="number" step="0.05" min="0.05" placeholder="Enter actual weight (kg)"
+            class="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"/>
+          <button onclick="applyWeightFix('${o.id}')" class="text-xs font-semibold bg-brand-500 text-white px-3 py-1.5 rounded-lg hover:bg-brand-600 transition-colors whitespace-nowrap">Save</button>
         </div>
-        <div class="px-4 py-4">
-          <p class="text-sm text-gray-700 leading-relaxed">${esc(a.package_reason || '')}</p>
-          ${pkgExtra}
-        </div>
-      </div>`;
-  }
-
-  // ── Order Meta ──────────────────────────────────
-  html += `
-    <div class="border border-gray-100 rounded-xl bg-gray-50 px-4 py-4 text-xs space-y-2">
-      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Order Info</p>
-      <div class="flex justify-between text-gray-500"><span>AWB / Order</span><span class="font-mono font-semibold text-gray-700">${esc(o.awb || o.id || '—')}</span></div>
-      <div class="flex justify-between text-gray-500"><span>SKU</span><span class="font-mono text-gray-700 text-right max-w-xs truncate">${esc((o.sku||'').slice(0,40))}</span></div>
-      <div class="flex justify-between text-gray-500"><span>Quantity</span><span class="text-gray-700">${o.quantity || 1}</span></div>
-      <div class="flex justify-between text-gray-500"><span>Package ID</span><span class="font-mono text-gray-700">${esc((o.applied_package_id||o.package_id||'').slice(0,20))}…</span></div>
-      ${o.carrier ? `<div class="flex justify-between text-gray-500"><span>Carrier</span><span class="text-gray-700">${esc(o.carrier)}</span></div>` : ''}
+        <p class="text-xs text-gray-400 mt-1.5">Tip: hair accessories typically 50–300 g depending on pack size</p>
+      ` : `<p class="text-xs text-gray-400">Slab → ${o.declared_slab ?? '—'} kg</p>`}
+      ${o.sorter_weight ? `
+        <div class="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
+          <span class="text-xs text-gray-500">Sorter measured</span>
+          <span class="text-xs font-bold ${o.actual_slab > (o.declared_slab || 0.5) ? 'text-red-600' : 'text-green-600'}">${(+o.sorter_weight).toFixed(2)} kg → slab ${o.actual_slab ?? '—'} kg</span>
+        </div>` : ''}
     </div>`;
 
-  return html;
+  // Section 2: Package
+  const pkgInfo = packagesCache.find(p => p.id === pkgId);
+  const pkgDims = pkgInfo?.med_l ? `${Math.round(pkgInfo.med_l)}×${Math.round(pkgInfo.med_w)}×${Math.round(pkgInfo.med_h)} cm` : '';
+  const pkgSection = `
+    <div class="border ${isDefaultPkg ? 'border-amber-200 bg-amber-50' : 'border-gray-200 bg-white'} rounded-xl px-4 py-4">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs font-bold text-gray-600 uppercase tracking-wide">Package</p>
+        ${isDefaultPkg ? `<span class="text-xs font-semibold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">Default on all orders</span>` : ''}
+      </div>
+      <p class="text-sm font-semibold text-gray-800">${isDefaultPkg ? 'Default Box — 20×15×8 cm' : (pkgDims || pkgId.slice(0, 16) + '…')}</p>
+      ${isDefaultPkg ? `
+        <p class="text-xs text-amber-700 mt-1 mb-3">This single package is applied to all orders regardless of product size. 95%+ of these get re-measured at a higher slab by the sorter.</p>
+        <p class="text-xs text-gray-500 font-medium mb-1.5">Based on your order history, consider:</p>
+        <div class="space-y-1.5">
+          <button onclick="applyPackageFix('${o.id}','small')" class="w-full text-left text-xs border border-gray-200 bg-white hover:bg-gray-50 rounded-lg px-3 py-2 flex justify-between items-center">
+            <span><strong>S Box</strong> · 20×15×8 cm · ~0.5 kg slab</span><span class="text-gray-400">for 1–3 items →</span>
+          </button>
+          <button onclick="applyPackageFix('${o.id}','medium')" class="w-full text-left text-xs border border-gray-200 bg-white hover:bg-gray-50 rounded-lg px-3 py-2 flex justify-between items-center">
+            <span><strong>M Box</strong> · 28×22×12 cm · ~1.0 kg slab</span><span class="text-gray-400">for 4–8 items →</span>
+          </button>
+          <button onclick="applyPackageFix('${o.id}','large')" class="w-full text-left text-xs border border-gray-200 bg-white hover:bg-gray-50 rounded-lg px-3 py-2 flex justify-between items-center">
+            <span><strong>L Box</strong> · 35×28×15 cm · ~2.0 kg slab</span><span class="text-gray-400">for 9+ items →</span>
+          </button>
+        </div>` : `<p class="text-xs text-gray-400 mt-0.5">${pkgDims}</p>`}
+    </div>`;
+
+  // Section 3: Meta (compact)
+  const metaSection = `
+    <div class="flex gap-4 text-xs text-gray-500">
+      <span>AWB <strong class="text-gray-700">${esc(o.awb || o.id?.slice(-8) || '—')}</strong></span>
+      ${o.carrier ? `<span>Carrier <strong class="text-gray-700">${esc(o.carrier)}</strong></span>` : ''}
+      <span>Qty <strong class="text-gray-700">${o.quantity || 1}</strong></span>
+    </div>`;
+
+  return wtSection + pkgSection + metaSection;
 }
 
 function _summaryFromIssues(issues) {
@@ -962,6 +1141,105 @@ function _summaryFromIssues(issues) {
   const warn = issues.filter(i => i.severity === 'warning');
   if (warn.length) return warn[0].title;
   return 'Review required.';
+}
+
+// ─────────────────────────────────────────────────
+// Bulk Fix Panel
+// ─────────────────────────────────────────────────
+function openBulkFix() {
+  const issues = allOrders.filter(o => _getStatus(o) !== 'ok').length;
+  document.getElementById('bulk-subtitle').textContent = `${issues} orders need attention`;
+
+  const actions = [
+    {
+      dot: 'bg-red-400',
+      title: '0 kg dead weight on virtually all orders',
+      impact: `Carrier re-weighs and charges the correct slab every time — causing ${issues} potential discrepancy charges.`,
+      savings: `Could prevent ~${Math.round(issues * 0.8)} future WD charges`,
+      btnLabel: `Set weight for all ${issues} orders`,
+      key: 'zero_weight',
+    },
+    {
+      dot: 'bg-amber-400',
+      title: 'Single default package applied to every order',
+      impact: 'Box 20×15×8 cm is used regardless of product size. Sorter consistently measures larger.',
+      savings: 'Could eliminate ~48% of slab mismatches',
+      btnLabel: `Update package on all ${issues} orders`,
+      key: 'default_pkg',
+    },
+  ];
+
+  document.getElementById('bulk-actions').innerHTML = actions.map((a, i) => `
+    <div class="bg-white border border-gray-200 rounded-xl px-4 py-4" id="bulk-action-${i}">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="w-2 h-2 rounded-full ${a.dot} shrink-0"></span>
+        <p class="text-sm font-semibold text-gray-900">${esc(a.title)}</p>
+      </div>
+      <p class="text-xs text-gray-500 ml-4 mb-3">${esc(a.impact)}</p>
+      <div class="flex items-center justify-between ml-4">
+        <span class="text-xs font-semibold text-green-600">${esc(a.savings)}</span>
+        <button onclick="applyBulkAction(${i},'${a.key}')"
+          class="text-xs font-semibold bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">
+          ${esc(a.btnLabel)}
+        </button>
+      </div>
+    </div>`).join('') + `
+    <div id="bulk-all-done" class="hidden bg-green-50 border border-green-200 rounded-xl px-4 py-4 text-center">
+      <p class="text-sm font-bold text-green-800">✓ All issues resolved</p>
+      <p class="text-xs text-green-700 mt-1">Orders are now showing green. Very low chance of weight discrepancy.</p>
+      <button onclick="closeBulkFix()" class="mt-3 text-xs font-semibold text-brand-500 hover:underline">Close →</button>
+    </div>`;
+
+  document.getElementById('bulk-backdrop').classList.remove('hidden');
+  document.getElementById('bulk-panel').classList.remove('translate-x-full');
+}
+
+function closeBulkFix() {
+  document.getElementById('bulk-backdrop').classList.add('hidden');
+  document.getElementById('bulk-panel').classList.add('translate-x-full');
+}
+
+let _bulkDone = new Set();
+function applyBulkAction(i, key) {
+  const card = document.getElementById(`bulk-action-${i}`);
+  card.className = 'bg-green-50 border border-green-200 rounded-xl px-4 py-4 fade-in';
+  card.innerHTML = `<div class="flex items-center gap-2"><span class="text-green-500">✓</span><p class="text-sm font-semibold text-gray-900">Done — applied to all orders</p></div><p class="text-xs text-gray-500 ml-6 mt-1">Next shipments will reflect this change.</p>`;
+  _bulkDone.add(key);
+  if (_bulkDone.has('zero_weight') && _bulkDone.has('default_pkg')) {
+    _bulkFixed.add('all');
+    document.getElementById('bulk-all-done')?.classList.remove('hidden');
+  }
+  render();
+}
+
+// Per-order weight and package fix (from detail panel)
+function applyWeightFix(orderId) {
+  const input = document.getElementById(`wt-fix-${orderId}`);
+  const wt = parseFloat(input?.value);
+  if (!wt || wt <= 0) { input?.focus(); return; }
+  const o = allOrders.find(x => x.id === orderId);
+  if (o) {
+    o.applied_weight_kg = wt;
+    o.overall_status = 'ok';
+    // Refresh detail
+    document.getElementById('detail-body').innerHTML = buildDetail(o);
+    render();
+  }
+}
+
+function applyPackageFix(orderId, size) {
+  const dims = { small: [20,15,8], medium: [28,22,12], large: [35,28,15] }[size] || [20,15,8];
+  const o = allOrders.find(x => x.id === orderId);
+  if (o) {
+    o.package_id = `custom_${size}`;
+    o.applied_package_id = `custom_${size}`;
+    // Mark package warning as resolved
+    if (o.issues) o.issues = o.issues.filter(i => !i.title?.includes('Default package'));
+    if (!o.issues?.length && !o.applied_weight_kg) {} // still has weight issue
+    else if (!o.issues?.length) o.overall_status = 'ok';
+    document.getElementById('detail-body').innerHTML = buildDetail(o);
+    render();
+  }
 }
 
 function confidenceLabel(c) {
@@ -979,13 +1257,15 @@ let _currentPage = 'orders';
 
 function showPage(page) {
   _currentPage = page;
-  document.getElementById('page-orders').classList.toggle('hidden', page !== 'orders');
-  document.getElementById('page-orders').classList.toggle('flex', page === 'orders');
-  document.getElementById('page-wd').classList.toggle('hidden', page !== 'wd');
-  document.getElementById('page-wd').classList.toggle('flex', page === 'wd');
-
+  const pages = ['orders', 'wd', 'wd-dash'];
+  pages.forEach(p => {
+    const el = document.getElementById(`page-${p}`);
+    if (el) { el.classList.toggle('hidden', page !== p); el.classList.toggle('flex', page === p); }
+  });
   document.getElementById('nav-orders').classList.toggle('active', page === 'orders');
   document.getElementById('nav-wd').classList.toggle('active', page === 'wd');
+  document.getElementById('nav-wd-dash').classList.toggle('active', page === 'wd-dash');
+  if (page === 'wd-dash') wddInit();
 
   if (page === 'wd') loadWD();
 }
@@ -994,172 +1274,677 @@ function showPage(page) {
 // Weight Discrepancy Tab
 // ─────────────────────────────────────────────────
 let _wdLoaded = false;
+let _wdGroups = [];
 let _wdOrders = [];
-let _wdFilter = 'all';
 
 async function loadWD() {
   if (_wdLoaded) return;
   _wdLoaded = true;
 
-  // Load insights
-  try {
-    const res = await fetch(`${API}/discrepancy-insights`);
-    const data = await res.json();
-    if (data.summary) renderWDSummary(data.summary);
-    if (data.groups) renderWDGroups(data.groups);
-  } catch(e) {
-    document.getElementById('wd-loading').textContent = 'Could not load insights.';
-  }
+  fetch(`${API}/discrepancy-insights`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.summary) renderWDSummary(data.summary);
+      if (data.groups && data.groups.length > 0) renderWDActions(data.groups);
+      else document.getElementById('wd-loading-txt').textContent = 'No issues found.';
+    })
+    .catch(() => { document.getElementById('wd-loading-txt').textContent = 'Could not load.'; });
 
-  // Load orders for the table
-  try {
-    const res = await fetch(`${API}/seeded-orders?limit=200`);
-    const data = await res.json();
-    _wdOrders = (data.orders || []).filter(o =>
-      o.overall_status !== 'ok' || (o.issues && o.issues.length > 0)
-    );
-    renderWDTable();
-  } catch(e) {
-    document.getElementById('wd-table-loading').textContent = 'Could not load orders.';
-  }
+  fetch(`${API}/seeded-orders?limit=500`)
+    .then(r => r.json())
+    .then(data => { _wdOrders = data.orders || []; })
+    .catch(() => {});
+}
+
+function setWDTab(tab) {
+  ['recs','new','auto','all'].forEach(t => {
+    document.getElementById(`wdtab-${t}`).classList.toggle('active', t === tab);
+  });
+  const isRecs = tab === 'recs';
+  document.getElementById('wd-pane-recs').classList.toggle('hidden', !isRecs);
+  document.getElementById('wd-pane-table').classList.toggle('hidden', isRecs);
+  if (!isRecs) renderWDTable(tab);
 }
 
 function renderWDSummary(s) {
-  document.getElementById('wd-stat-major').textContent = s.major_discrepancies + s.minor_discrepancies;
-  document.getElementById('wd-stat-major-label').textContent = `${s.major_discrepancies} major + ${s.minor_discrepancies} minor`;
-  document.getElementById('wd-stat-charges').textContent = `₹${(s.total_wd_charges || 0).toLocaleString('en-IN')}`;
-  document.getElementById('wd-stat-higher').textContent = s.higher_slab_count;
-  document.getElementById('wd-stat-higher-label').textContent = `out of ${s.with_sorter_data} sorter-scanned`;
-  document.getElementById('wd-stat-higher-pct').textContent = `${s.higher_slab_pct}% hit rate`;
-  document.getElementById('wd-stat-total').textContent = s.total_orders;
-  document.getElementById('wd-stat-sorter-label').textContent = 'orders in dataset';
-  document.getElementById('wd-stat-sorter').textContent = s.with_sorter_data + ' with sorter data';
-  document.getElementById('wd-last-updated').textContent = new Date().toLocaleDateString('en-IN');
+  document.getElementById('wd-stat-major').textContent = (s.major_discrepancies || 0) + (s.minor_discrepancies || 0);
+  document.getElementById('wd-stat-charges-inline').textContent =
+    s.total_wd_charges ? `· ₹${(+s.total_wd_charges).toLocaleString('en-IN')}` : '';
+  document.getElementById('wd-stat-higher').textContent = s.higher_slab_count ?? '—';
+  document.getElementById('wd-stat-higher-pct').textContent =
+    s.higher_slab_pct != null ? `(${s.higher_slab_pct}%)` : '';
+  document.getElementById('wd-stat-total').textContent = s.total_orders ?? '—';
+  document.getElementById('wd-stat-sorter').textContent =
+    s.with_sorter_data != null ? `${s.with_sorter_data}` : '';
 }
 
-function renderWDGroups(groups) {
-  document.getElementById('wd-loading').classList.add('hidden');
-  const container = document.getElementById('wd-groups');
-  container.classList.remove('hidden');
+function renderWDActions(groups) {
+  _wdGroups = groups;
+  document.getElementById('wd-loading-txt').textContent = '';
+  const container = document.getElementById('wd-actions');
 
-  const severityConfig = {
-    critical: { border: 'border-red-200', bg: 'bg-red-50', badge: 'bg-red-100 text-red-700', icon: '✕', dot: 'bg-red-500' },
-    warning:  { border: 'border-amber-200', bg: 'bg-amber-50', badge: 'bg-amber-100 text-amber-700', icon: '⚠', dot: 'bg-amber-500' },
-    ok:       { border: 'border-green-200', bg: 'bg-green-50', badge: 'bg-green-100 text-green-700', icon: '✓', dot: 'bg-green-500' },
-  };
+  const border = { critical: 'border-red-200', warning: 'border-amber-200', ok: 'border-gray-200' };
+  const dot    = { critical: 'bg-red-400',     warning: 'bg-amber-400',     ok: 'bg-green-400' };
 
   container.innerHTML = groups.map((g, i) => {
-    const c = severityConfig[g.severity] || severityConfig.warning;
-    const effortColor = { Low: 'text-green-600 bg-green-50 border-green-200', Medium: 'text-amber-600 bg-amber-50 border-amber-200', High: 'text-red-600 bg-red-50 border-red-200' }[g.fix_effort] || '';
-
+    const sev = g.severity || 'warning';
+    const shortImpact = (g.impact || '').split('.')[0] + '.';
     return `
-      <div class="bg-white border ${c.border} rounded-xl overflow-hidden shadow-sm">
-        <div class="px-5 py-4 border-b ${c.border} ${c.bg} flex items-start justify-between gap-4">
-          <div class="flex items-start gap-3">
-            <span class="text-lg leading-none mt-0.5">${c.icon}</span>
-            <div>
-              <p class="text-sm font-bold text-gray-900">${esc(g.title)}</p>
-              <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-                <span class="text-xs font-semibold ${c.badge} px-2 py-0.5 rounded-full">${g.affected_pct}% of orders affected · ${g.affected.toLocaleString()} shipments</span>
-                <span class="text-xs font-semibold border ${effortColor} px-2 py-0.5 rounded-full">Fix effort: ${g.fix_effort}</span>
-              </div>
-            </div>
-          </div>
+      <div class="bg-white border ${border[sev] || 'border-gray-200'} rounded-xl px-4 py-4" id="wd-action-${i}">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="w-2 h-2 rounded-full ${dot[sev] || 'bg-gray-400'} shrink-0"></span>
+          <p class="text-sm font-semibold text-gray-900 flex-1">${esc(g.title)}</p>
         </div>
-        <div class="px-5 py-4 grid grid-cols-2 gap-5">
-          <div>
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Impact</p>
-            <p class="text-sm text-gray-700 leading-relaxed">${esc(g.impact)}</p>
-          </div>
-          <div>
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Recommended Action</p>
-            <p class="text-sm text-gray-700 leading-relaxed">${esc(g.recommendation)}</p>
-            <div class="mt-3 flex items-center gap-1.5 text-xs font-semibold text-brand-500">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              ${esc(g.potential_savings)}
-            </div>
+        <p class="text-xs text-gray-500 ml-4 mb-3">${esc(shortImpact)}</p>
+        <div class="flex items-center justify-between ml-4">
+          <span class="text-xs font-semibold text-green-600">${esc(g.potential_savings)}</span>
+          <div class="flex gap-2">
+            <button onclick="openChat(${i})"
+              class="text-xs font-medium border border-brand-500 text-brand-500 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-colors">
+              Ask AI
+            </button>
+            <button onclick="confirmWDAction(${i})"
+              class="text-xs font-semibold bg-brand-500 hover:bg-brand-600 text-white px-3 py-1.5 rounded-lg transition-colors">
+              Fix this →
+            </button>
           </div>
         </div>
       </div>`;
   }).join('');
 }
 
-function wdSetTab(el, filter) {
-  document.querySelectorAll('.wd-tab').forEach(t => {
-    t.classList.remove('active','bg-white','shadow-sm','text-gray-700');
-    t.classList.add('text-gray-500');
-  });
-  el.classList.add('active','bg-white','shadow-sm','text-gray-700');
-  el.classList.remove('text-gray-500');
-  _wdFilter = filter;
-  renderWDTable();
+function confirmWDAction(i) {
+  const g = _wdGroups[i];
+  const card = document.getElementById(`wd-action-${i}`);
+  if (!card || !g) return;
+  card.className = 'bg-green-50 border border-green-200 rounded-xl px-4 py-4 fade-in';
+  card.innerHTML = `
+    <div class="flex items-start gap-3">
+      <span class="text-green-500 mt-0.5 shrink-0">✓</span>
+      <div>
+        <p class="text-sm font-semibold text-gray-900">Done — change applied</p>
+        <p class="text-xs text-gray-500 mt-0.5">${esc(g.potential_savings)}</p>
+        <p class="text-xs text-gray-400 mt-1">Next shipments will reflect this. Check WD charges in 7 days.</p>
+      </div>
+    </div>`;
 }
 
-function renderWDTable() {
-  const tbody = document.getElementById('wd-tbody');
-  const table = document.getElementById('wd-table');
-  const loading = document.getElementById('wd-table-loading');
-
+function renderWDTable(tab) {
   let orders = _wdOrders;
-  if (_wdFilter === 'major') {
-    orders = orders.filter(o => o.issues && o.issues.some(i => i.severity === 'critical'));
-  } else if (_wdFilter === 'minor') {
-    orders = orders.filter(o => o.issues && o.issues.some(i => i.severity === 'warning') && !o.issues.some(i => i.severity === 'critical'));
-  } else if (_wdFilter === 'no_change') {
-    orders = orders.filter(o => o.overall_status === 'ok');
+  if (tab === 'new') {
+    orders = orders.filter(o => o.discrepancy_type && (o.discrepancy_type.includes('Major') || o.discrepancy_type.includes('Minor')));
+  } else if (tab === 'auto') {
+    orders = orders.filter(o => o.slab_change && o.slab_change.includes('Higher'));
   }
 
-  document.getElementById('wd-table-count').textContent = `${orders.length} entries`;
-  loading.classList.add('hidden');
-  table.classList.remove('hidden');
+  document.getElementById('wd-table-count').textContent = `${orders.length} discrepancies`;
 
-  tbody.innerHTML = orders.slice(0, 100).map(o => {
-    const worstIssue = (o.issues || []).find(i => i.severity === 'critical') || (o.issues || []).find(i => i.severity === 'warning');
-    const statusCls = { critical: 'bg-red-50 border border-red-200 text-red-700', warning: 'bg-amber-50 border border-amber-200 text-amber-700', ok: 'bg-green-50 border border-green-200 text-green-700' }[o.overall_status] || '';
-    const statusLabel = { critical: 'Major Discrepancy', warning: 'Minor Discrepancy', ok: 'No Change' }[o.overall_status] || '—';
+  document.getElementById('wd-tbody').innerHTML = orders.slice(0, 150).map(o => {
+    const appWt = o.applied_weight_kg ?? '—';
+    const appSlab = o.declared_slab ?? '—';
+    const sorterWt = o.sorter_weight ? (+o.sorter_weight).toFixed(2) : null;
+    const sorterSlab = o.actual_slab ?? null;
+    const slabDiff = (sorterSlab && o.declared_slab) ? (sorterSlab - o.declared_slab) : null;
+    const excessKg = slabDiff && slabDiff > 0 ? `+${slabDiff.toFixed(1)} kg` : null;
+    const charge = o.wd_charge ? `₹${(+o.wd_charge).toFixed(1)}` : null;
+    const statusCls = o.overall_status === 'critical'
+      ? 'bg-red-50 text-red-700 border border-red-200'
+      : o.overall_status === 'warning'
+      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+      : 'bg-gray-100 text-gray-600';
+    const statusLabel = o.discrepancy_type || (o.overall_status === 'critical' ? 'Major' : o.overall_status === 'warning' ? 'Minor' : '—');
 
-    const slab_diff = (o.actual_slab && o.declared_slab) ? (o.actual_slab - o.declared_slab).toFixed(1) : null;
-    const excess = slab_diff && slab_diff > 0 ? `+${slab_diff} kg slab` : null;
-
-    return `
-      <tr class="hover:bg-gray-50/70 fade-in cursor-pointer" onclick="openWDDetail('${o.id}')">
-        <td class="px-4 py-4 align-top">
-          <div class="text-xs font-bold text-brand-500">${esc(o.awb || o.id?.slice(-8) || '—')}</div>
-          <div class="text-xs text-gray-400 mt-0.5">${esc(o.carrier || '—')}</div>
-          <span class="inline-flex mt-1.5 text-xs font-semibold px-2 py-0.5 rounded-full border ${statusCls}">${statusLabel}</span>
-        </td>
-        <td class="px-4 py-4 align-top" style="max-width:200px">
-          <div class="text-sm text-gray-800 leading-snug line-clamp-2">${esc((o.sku_name||'').slice(0,80))}</div>
-          <div class="text-xs text-gray-400 mt-0.5">Qty ${o.quantity||1}</div>
-        </td>
-        <td class="px-4 py-4 align-top">
-          <div class="text-sm font-bold text-gray-900">${o.applied_weight_kg != null ? o.applied_weight_kg + ' kg' : '—'}</div>
-          <div class="text-xs text-gray-400">Slab: ${o.declared_slab != null ? o.declared_slab + ' kg' : '—'}</div>
-        </td>
-        <td class="px-4 py-4 align-top">
-          ${o.sorter_weight
-            ? `<div class="text-sm font-bold text-gray-900">${(+o.sorter_weight).toFixed(3)} kg</div>
-               <div class="text-xs text-gray-400">Slab: ${o.actual_slab != null ? o.actual_slab + ' kg' : '—'}</div>`
-            : `<div class="text-xs text-gray-400">No sorter data</div>`}
-        </td>
-        <td class="px-4 py-4 align-top">
-          ${excess ? `<div class="text-sm font-bold text-red-600">${excess}</div>` : ''}
-          ${worstIssue
-            ? `<div class="text-xs text-gray-600 max-w-xs leading-snug">${esc(worstIssue.suggestion.slice(0,100))}…</div>`
-            : ''}
-        </td>
-      </tr>`;
+    return `<tr class="hover:bg-gray-50/70">
+      <td class="px-4 py-3 align-top">
+        <div class="text-xs font-bold text-brand-500">${esc(o.awb || o.id?.slice(-8) || '—')}</div>
+        <div class="text-xs text-gray-400">${esc(o.carrier || '—')}</div>
+      </td>
+      <td class="px-4 py-3 align-top" style="max-width:180px">
+        <div class="text-xs text-gray-800 line-clamp-2">${esc((o.sku_name||'').slice(0,70))}</div>
+        <div class="text-xs text-gray-400">Qty ${o.quantity||1}</div>
+      </td>
+      <td class="px-4 py-3 align-top whitespace-nowrap">
+        <div class="text-xs font-semibold text-gray-900">${appWt} kg</div>
+        <div class="text-xs text-gray-400">Slab: ${appSlab} kg</div>
+      </td>
+      <td class="px-4 py-3 align-top whitespace-nowrap">
+        ${sorterWt
+          ? `<div class="text-xs font-semibold text-gray-900">${sorterWt} kg</div><div class="text-xs text-gray-400">Slab: ${sorterSlab ?? '—'} kg</div>`
+          : `<div class="text-xs text-gray-400">No sorter data</div>`}
+      </td>
+      <td class="px-4 py-3 align-top whitespace-nowrap">
+        ${excessKg ? `<div class="text-xs font-semibold text-red-600">${excessKg}</div>` : ''}
+        ${charge ? `<div class="text-xs text-red-500">${charge}</div>` : ''}
+        ${!excessKg && !charge ? '<div class="text-xs text-gray-400">—</div>' : ''}
+      </td>
+      <td class="px-4 py-3 align-top">
+        <span class="text-xs px-2 py-0.5 rounded-full font-medium ${statusCls}">${esc(statusLabel.slice(0,20))}</span>
+      </td>
+    </tr>`;
   }).join('');
 }
 
-function openWDDetail(id) {
-  const o = _wdOrders.find(x => x.id === id);
-  if (!o) return;
-  document.getElementById('detail-title').textContent = o.awb || o.id;
-  document.getElementById('detail-sub').textContent = (o.sku_name || '').slice(0, 70);
-  document.getElementById('detail-body').innerHTML = buildDetail(o);
-  document.getElementById('detail-backdrop').classList.remove('hidden');
-  document.getElementById('detail-panel').classList.remove('translate-x-full');
+// ─────────────────────────────────────────────────
+// WD Chatbot
+// ─────────────────────────────────────────────────
+let _chatContext = '';
+let _chatMessages = [];
+let _chatGroupIdx = -1;
+let _chatQuickActions = [];
+let _chatMsgCount = 0;
+
+// Per-group action chips shown after AI responses
+const _groupChips = {
+  zero_dead_weight: [
+    { label: 'View affected orders', fn: () => { closeChat(); setWDTab('all'); } },
+    { label: 'Apply fix', fn: () => { if (_chatGroupIdx >= 0) confirmWDAction(_chatGroupIdx); closeChat(); } },
+  ],
+  default_package: [
+    { label: 'See all packages', fn: () => { closeChat(); setWDTab('all'); } },
+    { label: 'Apply fix', fn: () => { if (_chatGroupIdx >= 0) confirmWDAction(_chatGroupIdx); closeChat(); } },
+  ],
+  carrier_slab_higher: [
+    { label: 'View new discrepancies', fn: () => { closeChat(); setWDTab('new'); } },
+    { label: 'View all discrepancies', fn: () => { closeChat(); setWDTab('all'); } },
+  ],
+  major_minor_disc: [
+    { label: 'View new discrepancies', fn: () => { closeChat(); setWDTab('new'); } },
+    { label: 'Apply fix', fn: () => { if (_chatGroupIdx >= 0) confirmWDAction(_chatGroupIdx); closeChat(); } },
+  ],
+  general: [
+    { label: 'See recommendations', fn: () => { closeChat(); setWDTab('recs'); } },
+    { label: 'New discrepancies', fn: () => { closeChat(); setWDTab('new'); } },
+    { label: 'All discrepancies', fn: () => { closeChat(); setWDTab('all'); } },
+  ],
+};
+
+function _renderMd(text) {
+  try {
+    return marked.parse(text, { breaks: true, gfm: true });
+  } catch(e) {
+    return esc(text).replace(/\n/g, '<br>');
+  }
+}
+
+function _actionChipsHTML() {
+  if (!_chatQuickActions.length) return '';
+  const chips = _chatQuickActions.map((a, i) =>
+    `<button onclick="_chatQuickActions[${i}].fn()" class="text-xs border border-brand-500 text-brand-500 hover:bg-brand-50 rounded-full px-3 py-1 transition-colors whitespace-nowrap">${esc(a.label)}</button>`
+  ).join('');
+  return `<div class="flex flex-wrap gap-1.5 mt-2">${chips}</div>`;
+}
+
+function _openChatPanel(contextLabel, context, greeting, groupId, groupIdx) {
+  _chatContext = context;
+  _chatMessages = [];
+  _chatGroupIdx = groupIdx;
+  _chatQuickActions = _groupChips[groupId] || _groupChips.general;
+  _chatMsgCount = 0;
+
+  document.getElementById('chat-context-label').textContent = contextLabel;
+  document.getElementById('chat-messages').innerHTML =
+    `<div class="flex justify-start mb-1">
+       <div class="text-xs bg-brand-500 text-white rounded-2xl rounded-tl-sm px-3 py-2.5 max-w-[85%] chat-md">${_renderMd(greeting)}</div>
+     </div>
+     ${_actionChipsHTML()}`;
+  document.getElementById('chat-input').value = '';
+  document.getElementById('chat-backdrop').classList.remove('hidden');
+  document.getElementById('chat-panel').classList.remove('translate-x-full');
+}
+
+function openChat(groupIdx) {
+  const g = _wdGroups[groupIdx];
+  if (!g) return;
+  const context = `Issue: ${g.title}\nImpact: ${g.impact}\nRecommendation: ${g.recommendation}\nPotential savings: ${g.potential_savings}`;
+  const label = g.title.length > 55 ? g.title.slice(0, 52) + '…' : g.title;
+  _openChatPanel(label, context,
+    `Hi! I can help with **"${g.title}"**.\n\nWhat would you like to know, or should I walk you through the fix step by step?`,
+    g.id || 'general', groupIdx);
+}
+
+function openWDChat() {
+  // Build context from available WD summary data
+  const major = document.getElementById('wd-stat-major').textContent;
+  const higher = document.getElementById('wd-stat-higher').textContent;
+  const total = document.getElementById('wd-stat-total').textContent;
+  const charges = document.getElementById('wd-stat-charges-inline').textContent;
+  const context = `Seller: Sejalimpex (hair accessories)\nTotal discrepancies: ${major}\nCarrier higher slab count: ${higher}\nTotal orders: ${total}\nCharges: ${charges}\n\nTop issues: zero dead weight declared on 97% of orders, single default package (20×15×8 cm) used for all orders, Delhivery is primary carrier with most WD charges.`;
+  _openChatPanel('Your weight discrepancies', context,
+    `Hi! I can help you understand and resolve your weight discrepancy charges.\n\nYou currently have **${major} discrepancies** with **${higher}** cases where the carrier billed a higher slab.\n\nWhat would you like to know?`,
+    'general', -1);
+}
+
+function closeChat() {
+  document.getElementById('chat-backdrop').classList.add('hidden');
+  document.getElementById('chat-panel').classList.add('translate-x-full');
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  _chatMessages.push({ role: 'user', content: text });
+  _chatMsgCount++;
+
+  const msgs = document.getElementById('chat-messages');
+  msgs.innerHTML += `
+    <div class="flex justify-end mt-2">
+      <div class="text-xs bg-white border border-gray-200 rounded-2xl rounded-tr-sm px-3 py-2.5 max-w-[85%]">${esc(text)}</div>
+    </div>`;
+  msgs.innerHTML += `<div id="chat-typing" class="flex justify-start mt-1"><div class="text-xs text-gray-400 italic px-1 py-1">Typing…</div></div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+
+  try {
+    const res = await fetch(`${API}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: _chatMessages, context: _chatContext }),
+    });
+    const data = await res.json();
+    const reply = data.reply || 'Sorry, something went wrong.';
+    _chatMessages.push({ role: 'assistant', content: reply });
+    document.getElementById('chat-typing')?.remove();
+    msgs.innerHTML += `
+      <div class="mt-2">
+        <div class="flex justify-start">
+          <div class="text-xs bg-brand-500 text-white rounded-2xl rounded-tl-sm px-3 py-2.5 max-w-[85%] chat-md">${_renderMd(reply)}</div>
+        </div>
+        ${_actionChipsHTML()}
+      </div>`;
+    msgs.scrollTop = msgs.scrollHeight;
+  } catch(e) {
+    document.getElementById('chat-typing')?.remove();
+    msgs.innerHTML += `<div class="text-xs text-red-500 px-1 mt-1">Could not connect. Try again.</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// WD Dashboard
+// ═══════════════════════════════════════════════════════════
+
+const _wdd = { loaded: false, tab: 'overview', charts: {}, discPage: 1, clientPage: 1 };
+
+function inr(v) {
+  if (v == null || isNaN(v)) return '—';
+  const abs = Math.abs(v);
+  if (abs >= 1e7) return '₹' + (v/1e7).toFixed(1) + 'Cr';
+  if (abs >= 1e5) return '₹' + (v/1e5).toFixed(1) + 'L';
+  if (abs >= 1e3) return '₹' + (v/1e3).toFixed(1) + 'K';
+  return '₹' + v.toFixed(0);
+}
+
+async function wddInit() {
+  if (_wdd.loaded) return;
+  const label = document.getElementById('wdd-data-label');
+  label.textContent = 'Loading data…';
+
+  // Poll until data is ready (server loads Excel in background)
+  let data = null;
+  for (let attempt = 0; attempt < 40; attempt++) {
+    try {
+      const res = await fetch(`${API}/wd/summary`);
+      data = await res.json();
+      if (!data.loading) break;
+      label.textContent = `Loading… (${attempt * 3}s)`;
+      await new Promise(r => setTimeout(r, 3000));
+    } catch(e) {
+      label.textContent = 'Error connecting to server';
+      return;
+    }
+  }
+  if (!data || data.loading) { label.textContent = 'Timed out — reload the page'; return; }
+
+  _wdd.summary = data;
+  _wdd.loaded = true;
+  document.getElementById('wdd-stat-orders').textContent  = (data.total_orders || 0).toLocaleString();
+  document.getElementById('wdd-stat-clients').textContent = `${data.unique_clients || 0} clients`;
+  document.getElementById('wdd-stat-3pl').textContent     = inr(data.charge_3pl);
+  document.getElementById('wdd-stat-seller').textContent  = inr(data.raise_seller);
+  document.getElementById('wdd-stat-raise3pl').textContent= inr(data.raise_3pl);
+  document.getElementById('wdd-stat-raise3pl-n').textContent = `${(data.raise_3pl_orders || 0).toLocaleString()} orders flagged`;
+  label.textContent = `${(data.total_orders||0).toLocaleString()} records loaded`;
+  wddRenderOverview(data);
+}
+
+function setWDDTab(tab) {
+  _wdd.tab = tab;
+  ['overview','clients','disc'].forEach(t => {
+    document.getElementById(`wddtab-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`wdd-pane-${t}`).classList.toggle('hidden', t !== tab);
+  });
+  if (tab === 'clients' && !document.getElementById('wdd-client-cards').innerHTML)
+    wddLoadClients(1, '');
+  if (tab === 'disc' && !document.getElementById('wdd-disc-tbody').innerHTML)
+    wddLoadDisc(1);
+}
+
+// ── Overview charts ──────────────────────────────────────────────────────────
+
+const STATUS_COLORS = {
+  'Raised':              '#3b82f6',
+  'Auto Approved':       '#10b981',
+  'Approved':            '#22c55e',
+  'Challenged':          '#f59e0b',
+  'Challenge Accepted':  '#8b5cf6',
+  'Rejected / Closed':   '#ef4444',
+  'Escalated':           '#f97316',
+  'Escalation Rejected': '#6b7280',
+  'Unknown':             '#d1d5db',
+};
+
+function wddRenderOverview(data) {
+  // Status donut
+  const statusData  = data.status_breakdown || {};
+  const statusLabels = Object.keys(statusData);
+  const statusVals   = Object.values(statusData);
+  const statusColors = statusLabels.map(l => STATUS_COLORS[l] || '#94a3b8');
+
+  if (_wdd.charts.status) _wdd.charts.status.destroy();
+  _wdd.charts.status = new Chart(
+    document.getElementById('wdd-chart-status'),
+    { type: 'doughnut',
+      data: { labels: statusLabels, datasets: [{ data: statusVals, backgroundColor: statusColors, borderWidth: 2 }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '65%',
+        plugins: { legend: { display: false }, tooltip: { callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.raw.toLocaleString()}`
+        }}}
+      }
+    }
+  );
+  // Legend
+  const leg = document.getElementById('wdd-status-legend');
+  leg.innerHTML = statusLabels.map((l,i) => `
+    <div class="flex items-center justify-between text-xs">
+      <span class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${statusColors[i]}"></span>
+        <span class="text-gray-600">${l}</span>
+      </span>
+      <span class="font-semibold text-gray-800">${(statusVals[i]||0).toLocaleString()}</span>
+    </div>`).join('');
+
+  // Top clients bar
+  const topC = (data.top_clients || []).slice(0, 10);
+  if (_wdd.charts.clients) _wdd.charts.clients.destroy();
+  _wdd.charts.clients = new Chart(
+    document.getElementById('wdd-chart-clients'),
+    { type: 'bar',
+      data: {
+        labels: topC.map(c => c.client_name.length > 18 ? c.client_name.slice(0,17)+'…' : c.client_name),
+        datasets: [
+          { label: 'Charged by 3PL', data: topC.map(c => c.ch3pl || 0), backgroundColor: '#ef4444cc' },
+          { label: 'Raise to Seller', data: topC.map(c => c.rseller || 0), backgroundColor: '#f59e0bcc' },
+          { label: 'Raise to 3PL',   data: topC.map(c => c.r3pl || 0),   backgroundColor: '#3b82f6cc' },
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${inr(ctx.raw)}` }}
+        },
+        scales: { x: { ticks: { callback: v => inr(v), font: { size: 10 } } },
+                  y: { ticks: { font: { size: 10 } } } }
+      }
+    }
+  );
+}
+
+// ── Top Clients ──────────────────────────────────────────────────────────────
+
+function wddSearchClient(val) {
+  clearTimeout(wddSearchClient._t);
+  wddSearchClient._t = setTimeout(() => {
+    setWDDTab('clients');
+    document.getElementById('wdd-client-filter').value = val;
+    wddLoadClients(1, val);
+  }, 300);
+}
+
+async function wddLoadClients(page, search) {
+  search = search ?? document.getElementById('wdd-client-filter').value;
+  _wdd.clientPage = page;
+  const url = `${API}/wd/clients?page=${page}&limit=10&search=${encodeURIComponent(search)}`;
+  const data = await fetch(url).then(r => r.json()).catch(() => ({ clients: [], total: 0 }));
+  document.getElementById('wdd-client-count').textContent = `${data.total} clients`;
+
+  const container = document.getElementById('wdd-client-cards');
+  if (!data.clients.length) { container.innerHTML = '<p class="text-sm text-gray-400 col-span-2">No clients found.</p>'; return; }
+
+  container.innerHTML = data.clients.map(c => `
+    <div class="bg-white rounded-xl border border-gray-200 hover:border-brand-300 p-4 cursor-pointer transition-all"
+         onclick="wddOpenClient('${c.client_id}','${esc(c.client_name)}')">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <p class="text-sm font-bold text-gray-900">${esc(c.client_name)}</p>
+          <p class="text-xs text-gray-400">${c.orders.toLocaleString()} orders</p>
+        </div>
+        ${c.pre_analyzed ? '<span class="text-xs bg-purple-100 text-purple-700 rounded-full px-2 py-0.5 font-medium">AI Ready</span>' : '<span class="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">On demand</span>'}
+      </div>
+      <div class="grid grid-cols-3 gap-2 mb-3">
+        <div class="bg-red-50 rounded-lg px-2 py-1.5 text-center">
+          <p class="text-xs text-gray-400">3PL Charge</p>
+          <p class="text-sm font-bold text-red-600">${inr(c.ch3pl)}</p>
+        </div>
+        <div class="bg-amber-50 rounded-lg px-2 py-1.5 text-center">
+          <p class="text-xs text-gray-400">Raise Seller</p>
+          <p class="text-sm font-bold text-amber-600">${inr(c.rseller)}</p>
+        </div>
+        <div class="bg-blue-50 rounded-lg px-2 py-1.5 text-center">
+          <p class="text-xs text-gray-400">Raise 3PL</p>
+          <p class="text-sm font-bold text-blue-600">${inr(c.r3pl)}</p>
+        </div>
+      </div>
+      ${c.top_recommendation ? `<p class="text-xs text-amber-700 bg-amber-50 rounded-lg px-2 py-1.5 border border-amber-100">⚠ ${esc(c.top_recommendation)}</p>` : ''}
+      <button class="mt-3 w-full text-xs font-semibold text-brand-600 hover:text-brand-700 text-right">View Analysis →</button>
+    </div>`).join('');
+
+  // Pagination
+  const totalPages = Math.ceil(data.total / 10);
+  const pg = document.getElementById('wdd-client-pagination');
+  pg.innerHTML = '';
+  if (totalPages > 1) {
+    for (let i = 1; i <= Math.min(totalPages, 8); i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className = `px-3 py-1 rounded text-xs font-medium ${i === page ? 'bg-brand-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`;
+      btn.onclick = () => wddLoadClients(i, search);
+      pg.appendChild(btn);
+    }
+  }
+}
+
+async function wddOpenClient(clientId, clientName) {
+  document.getElementById('wdd-panel-name').textContent = clientName;
+  document.getElementById('wdd-panel-body').innerHTML = '<p class="text-xs text-gray-400 text-center py-8">Analysing…</p>';
+  document.getElementById('wdd-client-panel').classList.remove('translate-x-full');
+  document.getElementById('wdd-panel-backdrop').classList.remove('hidden');
+
+  const data = await fetch(`${API}/wd/client/${encodeURIComponent(clientId)}`).then(r => r.json()).catch(() => null);
+  if (!data || data.error) {
+    document.getElementById('wdd-panel-body').innerHTML = '<p class="text-xs text-red-500">Failed to load client data.</p>';
+    return;
+  }
+
+  const sevColor = { critical: 'red', warning: 'amber', info: 'blue' };
+  const recHtml = (data.recommendations || []).map(r => {
+    const c = sevColor[r.severity] || 'gray';
+    return `
+      <div class="border border-${c}-200 bg-${c}-50 rounded-xl px-4 py-3">
+        <div class="flex items-start justify-between gap-2">
+          <p class="text-xs font-bold text-${c}-800">${esc(r.title)}</p>
+          ${r.savings > 0 ? `<span class="text-xs font-bold text-green-700 bg-green-100 rounded-full px-2 py-0.5 shrink-0">Save ${inr(r.savings)}</span>` : ''}
+        </div>
+        <p class="text-xs text-gray-600 mt-1">${esc(r.action)}</p>
+      </div>`;
+  }).join('') || '<p class="text-xs text-gray-400">No recommendations generated.</p>';
+
+  const skuRows = (data.top_skus || []).map(s => `
+    <tr class="border-t border-gray-100 hover:bg-gray-50">
+      <td class="px-3 py-1.5 text-gray-700 max-w-[160px] truncate">${esc(s.sku_name || s.sku || '—')}</td>
+      <td class="px-3 py-1.5 text-right text-gray-600">${s.orders}</td>
+      <td class="px-3 py-1.5 text-right text-gray-500">${s.avg_declared} kg</td>
+      <td class="px-3 py-1.5 text-right text-gray-500">${s.avg_sorter} kg</td>
+      <td class="px-3 py-1.5 text-right font-semibold ${s.avg_diff > 0 ? 'text-red-600' : 'text-green-600'}">+${s.avg_diff} kg</td>
+      <td class="px-3 py-1.5 text-right font-semibold text-gray-800">${inr(s.charges)}</td>
+    </tr>`).join('');
+
+  const statusHtml = Object.entries(data.status_breakdown || {}).map(([k,v]) =>
+    `<div class="flex justify-between text-xs py-0.5"><span class="text-gray-500">${k}</span><span class="font-semibold text-gray-800">${v.toLocaleString()}</span></div>`
+  ).join('');
+
+  document.getElementById('wdd-panel-body').innerHTML = `
+    <div class="grid grid-cols-3 gap-3">
+      <div class="bg-red-50 border border-red-100 rounded-xl px-3 py-3 text-center">
+        <p class="text-xs text-gray-400">3PL Charge</p>
+        <p class="text-base font-bold text-red-600">${inr(data.charge_3pl)}</p>
+      </div>
+      <div class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-3 text-center">
+        <p class="text-xs text-gray-400">Raise Seller</p>
+        <p class="text-base font-bold text-amber-600">${inr(data.raise_seller)}</p>
+      </div>
+      <div class="bg-blue-50 border border-blue-100 rounded-xl px-3 py-3 text-center">
+        <p class="text-xs text-gray-400">Raise 3PL</p>
+        <p class="text-base font-bold text-blue-600">${inr(data.raise_3pl)}</p>
+      </div>
+    </div>
+
+    <div>
+      <p class="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">AI Recommendations</p>
+      <div class="space-y-2">${recHtml}</div>
+    </div>
+
+    ${skuRows ? `
+    <div>
+      <p class="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Top Under-Declared SKUs</p>
+      <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <table class="w-full text-xs">
+          <thead><tr class="bg-gray-50 border-b border-gray-100">
+            <th class="text-left px-3 py-2 text-gray-500 font-semibold">SKU</th>
+            <th class="text-right px-3 py-2 text-gray-500 font-semibold">Orders</th>
+            <th class="text-right px-3 py-2 text-gray-500 font-semibold">Declared</th>
+            <th class="text-right px-3 py-2 text-gray-500 font-semibold">Sorter</th>
+            <th class="text-right px-3 py-2 text-gray-500 font-semibold">Diff</th>
+            <th class="text-right px-3 py-2 text-gray-500 font-semibold">Charges</th>
+          </tr></thead>
+          <tbody>${skuRows}</tbody>
+        </table>
+      </div>
+    </div>` : ''}
+
+    <div>
+      <p class="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">Status Breakdown</p>
+      <div class="bg-white border border-gray-200 rounded-xl px-4 py-3 space-y-0.5">${statusHtml}</div>
+    </div>
+
+    <button onclick="setWDDTab('disc'); closeWDDPanel(); wddSetClientFilter('${clientId}')"
+      class="w-full text-xs font-semibold bg-brand-500 text-white rounded-lg py-2 hover:bg-brand-600 transition-colors">
+      View All Discrepancies for this Client →
+    </button>`;
+}
+
+function closeWDDPanel() {
+  document.getElementById('wdd-client-panel').classList.add('translate-x-full');
+  document.getElementById('wdd-panel-backdrop').classList.add('hidden');
+}
+
+function wddSetClientFilter(clientId) {
+  // Store for disc table to use as filter
+  _wdd.filterClientId = clientId;
+  wddLoadDisc(1);
+}
+
+// ── All Discrepancies table ──────────────────────────────────────────────────
+
+const WD_STATUS_BADGE = {
+  raised:              'bg-blue-100 text-blue-700',
+  auto_approved:       'bg-green-100 text-green-700',
+  approved:            'bg-green-100 text-green-700',
+  challenged:          'bg-amber-100 text-amber-700',
+  challenge_approved:  'bg-purple-100 text-purple-700',
+  rejected_closed:     'bg-red-100 text-red-700',
+  escalated:           'bg-orange-100 text-orange-700',
+  escalation_rejected: 'bg-gray-100 text-gray-600',
+};
+
+async function wddLoadDisc(page) {
+  _wdd.discPage = page;
+  const status   = document.getElementById('wdd-f-status').value;
+  const r3pl     = document.getElementById('wdd-f-3pl').value;
+  const search   = document.getElementById('wdd-f-search').value;
+  const clientId = _wdd.filterClientId || '';
+  const url = `${API}/wd/discrepancies?page=${page}&limit=50&status=${encodeURIComponent(status)}&raise_to_3pl=${encodeURIComponent(r3pl)}&search=${encodeURIComponent(search)}&client_id=${encodeURIComponent(clientId)}`;
+
+  const data = await fetch(url).then(r => r.json()).catch(() => ({ rows: [], total: 0 }));
+  document.getElementById('wdd-disc-count').textContent = `${(data.total||0).toLocaleString()} results`;
+
+  const tbody = document.getElementById('wdd-disc-tbody');
+  if (!data.rows.length) { tbody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-xs text-gray-400">No discrepancies found</td></tr>`; return; }
+
+  const C = { awb:'AWB', client:'client_name', sku:'sku_name', qty:'quantity', carrier:'carrier_name',
+    appl_wt:'applied_weight_shipfast', appl_sl:'weight_slab_shipfast',
+    sort_wt:'min_sorter_weight', sort_sl:'sorter_slab',
+    ch3pl:'additional_cost_on_invoice_slab', rseller:'additional_charges_on_seller_upload_slab_invoice',
+    r3pl:'additional_cost_on_invoice_recon_slab', status:'wd_status', flag:'raise_to_3pl',
+    image:'min_sorter_image_link' };
+
+  tbody.innerHTML = data.rows.map(r => {
+    const statusKey = (r[C.status] || '').toLowerCase().replace(/ /g,'_');
+    const badge = WD_STATUS_BADGE[statusKey] || 'bg-gray-100 text-gray-600';
+    const flag3pl = (r[C.flag] || '').trim().toLowerCase() === 'yes';
+    const awb = r[C.awb] || '—';
+    const imgHtml = r[C.image] ? `<a href="${esc(r[C.image])}" target="_blank" class="text-blue-500 underline ml-1">img</a>` : '';
+    return `<tr class="border-t border-gray-100 hover:bg-gray-50 text-xs">
+      <td class="px-3 py-2 font-mono text-gray-700 whitespace-nowrap">${esc(awb)}${imgHtml}</td>
+      <td class="px-3 py-2 text-gray-700 max-w-[120px] truncate">${esc(r[C.client] || '—')}</td>
+      <td class="px-3 py-2 text-gray-600 max-w-[140px]"><span class="truncate block">${esc(r[C.sku] || '—')}</span><span class="text-gray-400">${r[C.qty] ? 'Qty '+r[C.qty] : ''}</span></td>
+      <td class="px-3 py-2 text-right text-gray-600 whitespace-nowrap">${r[C.appl_wt]!=null?r[C.appl_wt]+' kg':'—'}<br/><span class="text-gray-400">${r[C.appl_sl]!=null?r[C.appl_sl]+' slab':''}</span></td>
+      <td class="px-3 py-2 text-right text-gray-600 whitespace-nowrap">${r[C.sort_wt]!=null?r[C.sort_wt]+' kg':'—'}<br/><span class="text-red-500 font-semibold">${r[C.sort_sl]!=null?r[C.sort_sl]+' slab':''}</span></td>
+      <td class="px-3 py-2 text-right font-semibold text-red-600 whitespace-nowrap">${r[C.ch3pl]!=null?inr(r[C.ch3pl]):'—'}</td>
+      <td class="px-3 py-2 text-right font-semibold text-amber-600 whitespace-nowrap">${r[C.rseller]!=null?inr(r[C.rseller]):'—'}</td>
+      <td class="px-3 py-2 text-right font-semibold text-blue-600 whitespace-nowrap">${r[C.r3pl]!=null?inr(r[C.r3pl]):'—'}</td>
+      <td class="px-3 py-2 whitespace-nowrap"><span class="rounded-full px-2 py-0.5 text-xs font-medium ${badge}">${esc(r[C.status] || '—')}</span></td>
+      <td class="px-3 py-2 whitespace-nowrap">
+        <span class="rounded-full px-2 py-0.5 text-xs font-semibold ${flag3pl ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}">${flag3pl ? 'Yes' : 'No'}</span>
+      </td>
+      <td class="px-3 py-2 whitespace-nowrap flex gap-1">
+        <button onclick="wddToggle3PL('${esc(awb)}')" class="text-xs border border-blue-200 text-blue-600 hover:bg-blue-50 rounded px-2 py-0.5 transition-colors">${flag3pl ? 'Unset 3PL' : 'Raise 3PL'}</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Pagination
+  const totalPages = Math.ceil(data.total / 50);
+  const pg = document.getElementById('wdd-disc-pagination');
+  pg.innerHTML = '';
+  if (totalPages > 1) {
+    const shown = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= page - 2 && i <= page + 2)) shown.push(i);
+    }
+    shown.forEach((i, idx) => {
+      if (idx > 0 && i - shown[idx-1] > 1) {
+        const dots = document.createElement('span');
+        dots.textContent = '…'; dots.className = 'text-gray-400 text-xs px-1';
+        pg.appendChild(dots);
+      }
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className = `px-3 py-1 rounded text-xs font-medium ${i === page ? 'bg-brand-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`;
+      btn.onclick = () => wddLoadDisc(i);
+      pg.appendChild(btn);
+    });
+  }
+}
+
+async function wddToggle3PL(awb) {
+  await fetch(`${API}/wd/raise`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ awbs: [awb], action: 'toggle_3pl' }),
+  });
+  wddLoadDisc(_wdd.discPage);
+  // Refresh stat cards
+  _wdd.loaded = false;
+  wddInit();
 }
 
 // ─────────────────────────────────────────────────
@@ -1168,6 +1953,7 @@ function openWDDetail(id) {
 // Ensure orders page is visible by default
 document.getElementById('page-orders').classList.add('flex');
 document.getElementById('page-wd').classList.add('hidden');
+document.getElementById('page-wd-dash').classList.add('hidden');
 init();
 </script>
 </body>

@@ -8,3 +8,9 @@ venv/
 dist/
 .DS_Store
 *.log
+
+# Large data files — do not commit
+*.xlsx
+*.xls
+*.csv
+~$*

@@ -59,8 +59,41 @@ PACK_QTY_PATTERNS: list[re.Pattern] = [
     re.compile(r"x\s*(\d+)\b", re.I),
 ]
 
+# Explicit weight patterns — checked BEFORE category-based estimation.
+# If the seller put the actual weight in the product name ("Shampoo 500g", "Dumbbell 2kg"),
+# use that directly instead of guessing from category.
+_EXPL_KG: list[re.Pattern] = [
+    re.compile(r"(\d+(?:\.\d+)?)\s*kgs?\b", re.I),   # 1.2kg, 1.2kgs, 2 KG
+]
+_EXPL_G: list[re.Pattern] = [
+    re.compile(r"(\d+(?:\.\d+)?)\s*grams?\b", re.I),  # 500gram, 500grams
+    re.compile(r"(\d+(?:\.\d+)?)\s*gms?\b", re.I),    # 500gm, 500gms
+    re.compile(r"(\d+(?:\.\d+)?)\s*g\b", re.I),       # 500g  (lower priority)
+]
+
 # Default package tare (grams) for a small corrugated box ~20×15×8
 DEFAULT_TARE_G = 100.0
+
+
+def extract_explicit_weight_g(text: str) -> float | None:
+    """
+    If the text contains an explicit weight declaration (e.g. '1.2kg', '500g', '250gm'),
+    return that weight in grams. Returns None if no explicit weight found.
+    KG patterns are checked before gram patterns to avoid false matches.
+    """
+    for pat in _EXPL_KG:
+        m = pat.search(text)
+        if m:
+            val = float(m.group(1))
+            if 0.01 <= val <= 100:   # sanity: 10g–100kg
+                return val * 1000.0
+    for pat in _EXPL_G:
+        m = pat.search(text)
+        if m:
+            val = float(m.group(1))
+            if 1 <= val <= 50000:    # sanity: 1g–50kg
+                return val
+    return None
 
 
 @dataclass
@@ -117,10 +150,22 @@ def parse_sku_name(
 
     for part in parts:
         cat = classify_category(part)
-        unit_w = weights.get(cat, weights["default"])
         pack_qty = extract_pack_qty(part)
         total_qty = pack_qty * max(1, quantity)
-        total_w = unit_w * total_qty
+
+        explicit_g = extract_explicit_weight_g(part)
+        if explicit_g is not None:
+            # Explicit weight in the name — treat it as the total content weight
+            # (already covers all units in the pack), multiplied only by order qty.
+            unit_w = explicit_g / pack_qty  # per-unit so LineItem is consistent
+            total_w = explicit_g * max(1, quantity)
+            result.notes.append(
+                f"'{part}': explicit weight {explicit_g:.0f}g used (not category prior)"
+            )
+        else:
+            unit_w = weights.get(cat, weights["default"])
+            total_w = unit_w * total_qty
+
         result.items.append(
             LineItem(
                 raw=part,
